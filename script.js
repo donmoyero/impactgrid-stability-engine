@@ -102,10 +102,8 @@ function resetAdvancedSections() {
     performanceBarChart?.destroy();
     distributionPieChart?.destroy();
 
-    Object.keys(forecastCharts).forEach(key => {
-        forecastCharts[key]?.destroy();
-        delete forecastCharts[key];
-    });
+    Object.values(forecastCharts).forEach(chart => chart?.destroy());
+    forecastCharts = {};
 }
 
 /* ================= FORECAST ================= */
@@ -202,68 +200,12 @@ function renderPerformanceMatrix() {
 
 function renderRiskAssessment() {
 
-    setText("stabilityRisk", calculateVolatility() > 35 ? "Elevated" : "Low");
-    setText("marginRisk", getMargin() < 8 ? "Elevated" : "Low");
-    setText("liquidityRisk", getMargin() > 5 ? "Stable" : "Constrained");
-}
+    const volatility = calculateVolatility();
+    const margin = getMargin();
 
-/* ================= CORE CHARTS ================= */
-
-function renderCoreCharts() {
-
-    revenueChart?.destroy();
-    profitChart?.destroy();
-    expenseChart?.destroy();
-
-    const labels = businessData.map(d => d.date.toISOString().slice(0,7));
-
-    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
-    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
-    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
-}
-
-function createChart(id,type,labels,data,label){
-    const canvas = document.getElementById(id);
-    if (!canvas) return null;
-
-    return new Chart(canvas,{
-        type,
-        data:{ labels, datasets:[{ label, data }] },
-        options:{ responsive:true, maintainAspectRatio:false }
-    });
-}
-
-/* ================= HELPERS ================= */
-
-function setText(id, value){
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = value;
-}
-
-function calculateMonthlyGrowth() {
-    if (businessData.length < 2) return 0;
-    const first = businessData[0].revenue;
-    const last = businessData[businessData.length - 1].revenue;
-    return first === 0 ? 0 : ((last - first) / first) * 100;
-}
-
-function calculateVolatility(){
-    if (businessData.length < 2) return 0;
-    const revenues = businessData.map(d=>d.revenue);
-    const mean = revenues.reduce((a,b)=>a+b,0)/revenues.length;
-    if (mean === 0) return 0;
-    const variance = revenues.reduce((a,b)=>a+Math.pow(b-mean,2),0)/revenues.length;
-    return (Math.sqrt(variance)/mean)*100;
-}
-
-function getMargin(){
-    const totalRevenue=sum("revenue");
-    const totalProfit=sum("profit");
-    return totalRevenue>0?(totalProfit/totalRevenue)*100:0;
-}
-
-function sum(key){
-    return businessData.reduce((a,b)=>a+(b[key]||0),0);
+    setText("stabilityRisk", volatility > 35 ? "Elevated" : "Low");
+    setText("marginRisk", margin < 8 ? "Elevated" : "Low");
+    setText("liquidityRisk", margin > 5 ? "Stable" : "Constrained");
 }
 
 /* ================= NAVIGATION ================= */
@@ -282,33 +224,17 @@ function showSection(sectionId, event) {
 
     if (event) event.target.classList.add("active");
 
-    // 🔥 Critical: re-render when switching to advanced tabs
+    // 🔥 Re-render when opening advanced tabs
     if (businessData.length >= 3) {
         if (sectionId === "forecast") renderForecasts();
         if (sectionId === "matrix") renderPerformanceMatrix();
         if (sectionId === "risk") renderRiskAssessment();
     }
-
-    // Resize charts after showing section
-    setTimeout(() => {
-        revenueChart?.resize();
-        profitChart?.resize();
-        expenseChart?.resize();
-        Object.values(forecastCharts).forEach(chart => chart?.resize());
-        performanceBarChart?.resize();
-        distributionPieChart?.resize();
-    }, 100);
 }
-
-function logout() {
-    location.reload();
-}
-
-/* ================= GLOBAL BINDING ================= */
 
 function bindGlobalFunctions(){
     window.addData = addData;
     window.showSection = showSection;
-    window.logout = logout;
+    window.logout = () => location.reload();
     window.setCurrency = setCurrency;
 }
