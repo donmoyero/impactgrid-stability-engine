@@ -50,12 +50,6 @@
     <!-- Business Profile -->
     <section class="card">
         <h2>Business Profile & Reporting Context</h2>
-
-        <p style="font-size:13px; color:#94a3b8; margin-bottom:20px;">
-            Provide basic business context. Financial modelling activates once at least 
-            <strong>2 months</strong> of historical data are entered.
-        </p>
-
         <div class="grid">
             <div>
                 <label>Business Start Date</label>
@@ -78,37 +72,28 @@
                 </select>
             </div>
         </div>
-
         <div id="lifecycleClassification" style="margin-top:20px;"></div>
     </section>
 
     <!-- Monthly Data Input -->
     <section class="card">
         <h2>Monthly Financial Data Entry</h2>
-
-        <p style="font-size:13px; color:#94a3b8; margin-bottom:20px;">
-            Enter completed historical months only. Forecasts are automatically generated 
-            from historical growth trends — no manual future input required.
-        </p>
-
         <div class="grid">
             <div>
                 <label>Reporting Month</label>
                 <input type="month" id="month">
             </div>
-
             <div>
                 <label>Total Revenue (£)</label>
-                <input type="number" id="revenue" min="0" step="0.01" placeholder="e.g. 20000">
+                <input type="number" id="revenue" min="0" step="0.01">
             </div>
-
             <div>
                 <label>Total Expenses (£)</label>
-                <input type="number" id="expenses" min="0" step="0.01" placeholder="e.g. 15000">
+                <input type="number" id="expenses" min="0" step="0.01">
             </div>
-
             <div>
-                <button class="btn-primary" onclick="addData()">Add Data</button>
+                <!-- FIX: Explicit button type -->
+                <button type="button" class="btn-primary" onclick="addData()">Add Data</button>
             </div>
         </div>
     </section>
@@ -192,4 +177,87 @@
 
 </section>
 
-<!-- ================= FORECAST / MATRIX / RISK SECTIONS UNCHANGED ================= -->
+<!-- ================= FORECAST PAGE ================= -->
+<section id="forecast" class="page-section">
+    <section class="card">
+        <h2>Forecast Horizons</h2>
+
+        <div class="forecast-block">
+            <h3>6-Month Projection</h3>
+            <canvas id="forecast6m"></canvas>
+        </div>
+
+        <div class="forecast-block">
+            <h3>1-Year Projection</h3>
+            <canvas id="forecast1y"></canvas>
+        </div>
+
+        <div class="forecast-block">
+            <h3>3-Year Projection</h3>
+            <canvas id="forecast3y"></canvas>
+        </div>
+
+        <div class="forecast-block">
+            <h3>5-Year Projection</h3>
+            <canvas id="forecast5y"></canvas>
+        </div>
+    </section>
+</section>
+
+<!-- ================= PERFORMANCE MATRIX ================= -->
+<section id="matrix" class="page-section">
+    <section class="card">
+        <h2>Performance Matrix</h2>
+
+        <div class="chart-card">
+            <canvas id="performanceBarChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <canvas id="distributionPieChart"></canvas>
+        </div>
+
+        <div class="structured-block">
+            <h3>Composite Business Health Index</h3>
+            <div id="businessHealthIndex"></div>
+        </div>
+
+        <div class="structured-block">
+            <h3>Structured Interpretation</h3>
+            <div id="matrixInterpretation"></div>
+        </div>
+    </section>
+</section>
+
+<!-- ================= RISK PAGE ================= -->
+<section id="risk" class="page-section">
+    <section class="card">
+        <h2>Operational Risk Assessment</h2>
+
+        <div class="structured-block">
+            <h3>Stability Risk</h3>
+            <div id="stabilityRisk"></div>
+        </div>
+
+        <div class="structured-block">
+            <h3>Margin Risk</h3>
+            <div id="marginRisk"></div>
+        </div>
+
+        <div class="structured-block">
+            <h3>Liquidity Exposure</h3>
+            <div id="liquidityRisk"></div>
+        </div>
+    </section>
+</section>
+
+<footer class="dashboard-footer">
+    © 2026 ImpactGrid Stability Engine
+</footer>
+
+</main>
+</div>
+
+<script src="./script.js"></script>
+</body>
+</html>
