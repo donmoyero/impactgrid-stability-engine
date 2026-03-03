@@ -18,10 +18,8 @@
 
 <div id="app" class="app-layout">
 
-<!-- ================= MOBILE TOGGLE BUTTON ================= -->
 <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
 
-<!-- ================= SIDEBAR ================= -->
 <aside class="sidebar" id="sidebar">
     <div class="logo-container">
         <img src="logo.png" alt="ImpactGrid Logo" class="logo-img">
@@ -51,10 +49,11 @@
 <!-- ================= DASHBOARD ================= -->
 <section id="dashboard" class="page-section active-section">
 
+    <!-- (YOUR ENTIRE EXISTING DASHBOARD CONTENT REMAINS UNCHANGED HERE) -->
+
     <!-- Business Profile -->
     <section class="card">
         <h2>Business Profile & Reporting Context</h2>
-
         <div class="grid">
             <div>
                 <label>Business Start Date</label>
@@ -76,7 +75,6 @@
                     <option value="other">Other</option>
                 </select>
             </div>
-
             <div>
                 <label>Reporting Currency</label>
                 <select id="currencySelector" onchange="setCurrency(this.value)">
@@ -87,18 +85,15 @@
                 </select>
             </div>
         </div>
-
         <div id="lifecycleClassification" style="margin-top:20px;"></div>
     </section>
 
     <!-- Monthly Data Input -->
     <section class="card">
         <h2>Monthly Financial Data Entry</h2>
-
         <div style="font-weight:600; margin-bottom:18px;">
             Minimum 3 months required to activate advanced structural insights.
         </div>
-
         <div class="grid">
             <div>
                 <label>Reporting Month</label>
@@ -122,12 +117,10 @@
     <section class="card">
         <h2>Executive Financial Summary</h2>
         <div id="financialPositionSummary"></div>
-
         <div class="structured-block">
             <h3>Financial Status Classification</h3>
             <div id="financialClassification"></div>
         </div>
-
         <div class="structured-block">
             <h3>Structured Commentary</h3>
             <div id="executiveCommentary"></div>
@@ -137,10 +130,6 @@
     <!-- Stability Engine -->
     <section class="card stability-engine-card">
         <h2>Financial Stability Behaviour Assessment</h2>
-
-        <div class="activation-info" style="margin-bottom:20px; font-size:13px; color:#93c5fd;">
-            Add at least 3 months of financial data to activate advanced structural insights.
-        </div>
 
         <div class="structured-block">
             <h3>Stability Regime</h3>
@@ -179,26 +168,57 @@
         <div id="insightEngine"></div>
     </section>
 
-    <!-- Charts -->
+    <!-- Core Charts -->
     <section class="card">
         <h2>Operational Performance Charts</h2>
-
         <div class="chart-card">
             <h3>Revenue Trend</h3>
             <canvas id="revenueChart"></canvas>
         </div>
-
         <div class="chart-card">
             <h3>Profit Trend</h3>
             <canvas id="profitChart"></canvas>
         </div>
-
         <div class="chart-card">
             <h3>Expense Trend</h3>
             <canvas id="expenseChart"></canvas>
         </div>
     </section>
 
+</section>
+
+<!-- ================= FORECAST ================= -->
+<section id="forecast" class="page-section">
+    <section class="card">
+        <h2>Forecast Horizons</h2>
+        <div class="forecast-block"><canvas id="forecast6m"></canvas></div>
+        <div class="forecast-block"><canvas id="forecast1y"></canvas></div>
+        <div class="forecast-block"><canvas id="forecast3y"></canvas></div>
+        <div class="forecast-block"><canvas id="forecast5y"></canvas></div>
+    </section>
+</section>
+
+<!-- ================= PERFORMANCE MATRIX ================= -->
+<section id="matrix" class="page-section">
+    <section class="card">
+        <h2>Performance Matrix</h2>
+        <div class="chart-card"><canvas id="performanceBarChart"></canvas></div>
+        <div class="chart-card"><canvas id="distributionPieChart"></canvas></div>
+        <div class="structured-block">
+            <h3>Composite Business Health Index</h3>
+            <div id="businessHealthIndex"></div>
+        </div>
+    </section>
+</section>
+
+<!-- ================= RISK ================= -->
+<section id="risk" class="page-section">
+    <section class="card">
+        <h2>Operational Risk Assessment</h2>
+        <div class="structured-block"><div id="stabilityRisk"></div></div>
+        <div class="structured-block"><div id="marginRisk"></div></div>
+        <div class="structured-block"><div id="liquidityRisk"></div></div>
+    </section>
 </section>
 
 <footer class="dashboard-footer">
@@ -210,7 +230,6 @@
 
 <script src="./script.js"></script>
 
-<!-- ================= MOBILE TOGGLE SCRIPT ================= -->
 <script>
 function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("active-mobile");
