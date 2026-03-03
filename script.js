@@ -16,27 +16,16 @@ document.addEventListener("DOMContentLoaded", () => {
     bindGlobalFunctions();
 });
 
-/* ================= DATA VALIDATION ================= */
-
-function hasMinimumData(months = 3) {
-    return businessData.length >= months;
-}
-
 /* ================= ADD DATA ================= */
 
 function addData() {
 
-    const monthValue = document.getElementById("month")?.value;
-    const revenue = parseFloat(document.getElementById("revenue")?.value);
-    const expenses = parseFloat(document.getElementById("expenses")?.value);
+    const monthValue = document.getElementById("month").value;
+    const revenue = parseFloat(document.getElementById("revenue").value);
+    const expenses = parseFloat(document.getElementById("expenses").value);
 
     if (!monthValue || isNaN(revenue) || isNaN(expenses)) {
-        alert("Enter valid financial data.");
-        return;
-    }
-
-    if (revenue < 0 || expenses < 0) {
-        alert("Revenue and expenses must be positive values.");
+        alert("Enter valid revenue and expense data.");
         return;
     }
 
@@ -62,62 +51,18 @@ function addData() {
 
 function updateAll() {
 
-    if (!businessData.length) return;
+    if (businessData.length === 0) return;
 
     renderExecutiveSummary();
     renderLifecycle();
-    renderInsights();
     renderCoreCharts();
+    renderForecasts();
+    renderPerformanceMatrix();
+    renderRiskAssessment();
 
-    if (hasMinimumData(3)) {
-        renderForecasts();
-        renderPerformanceMatrix();
-        renderRiskAssessment();
+    if (businessData.length >= 2) {
         renderFinancialStabilityAssessment();
-    } else {
-        clearAdvancedSections();
-        showSystemMessage("Minimum 3 months of financial data required for advanced modelling.");
     }
-}
-
-/* ================= SYSTEM MESSAGE ================= */
-
-function showSystemMessage(message) {
-
-    const regimeEl = document.getElementById("stabilityRegimeOutput");
-    const healthEl = document.getElementById("businessHealthIndex");
-
-    if (regimeEl) regimeEl.innerHTML = `<span style="color:#94a3b8;">${message}</span>`;
-    if (healthEl) healthEl.innerHTML = message;
-}
-
-/* ================= CLEAR ADVANCED SECTIONS ================= */
-
-function clearAdvancedSections() {
-
-    const ids = [
-        "interactionSensitivityOutput",
-        "stabilityIndexOutput",
-        "stabilityInterpretation",
-        "stabilityFocus",
-        "stabilityOutlook",
-        "matrixInterpretation",
-        "stabilityRisk",
-        "marginRisk",
-        "liquidityRisk"
-    ];
-
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = "—";
-    });
-
-    performanceBarChart?.destroy();
-    distributionPieChart?.destroy();
-
-    Object.keys(forecastCharts).forEach(key => {
-        forecastCharts[key]?.destroy();
-    });
 }
 
 /* ================= CORE CHARTS ================= */
@@ -128,9 +73,7 @@ function renderCoreCharts() {
     profitChart?.destroy();
     expenseChart?.destroy();
 
-    const labels = businessData.map(d =>
-        d.date.toISOString().slice(0,7)
-    );
+    const labels = businessData.map(d => d.date.toISOString().slice(0,7));
 
     revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"#22c55e","Revenue");
     profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"#3b82f6","Profit");
@@ -146,49 +89,9 @@ function createChart(id,type,labels,data,color,label){
 
     return new Chart(canvas.getContext("2d"),{
         type,
-        data:{ labels, datasets:[{ label, data, borderColor:color, backgroundColor:type==="bar"?color:"transparent", tension:0.4 }]},
+        data:{ labels, datasets:[{ label, data, borderColor:color, backgroundColor:type==="bar"?color:"transparent", tension:0.3 }]},
         options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
     });
-}
-
-/* ================= LIFECYCLE ================= */
-
-function getBusinessAgeMonths() {
-
-    const startDateInput = document.getElementById("businessStartDate")?.value;
-    const reportingDateInput = document.getElementById("reportingDate")?.value;
-
-    if (!startDateInput || !reportingDateInput) return 0;
-
-    const start = new Date(startDateInput);
-    const end = new Date(reportingDateInput);
-
-    return (end.getFullYear() - start.getFullYear()) * 12 +
-           (end.getMonth() - start.getMonth());
-}
-
-function renderLifecycle() {
-
-    const container = document.getElementById("lifecycleClassification");
-    if (!container) return;
-
-    if (!hasMinimumData(2)) {
-        container.innerHTML = "Lifecycle classification requires minimum 2 months of data.";
-        return;
-    }
-
-    const age = getBusinessAgeMonths();
-    const volatility = calculateVolatility();
-    const growth = calculateMonthlyGrowth();
-
-    let classification = "Early Operational Stage";
-
-    if (age > 60 && volatility < 20) classification = "Mature Operational Phase";
-    else if (growth > 5 && volatility < 25) classification = "Expansion Phase";
-    else if (volatility > 40) classification = "At-Risk Phase";
-    else if (age > 24) classification = "Stabilisation Phase";
-
-    container.innerHTML = `<strong>Lifecycle Classification:</strong> ${classification}`;
 }
 
 /* ================= EXECUTIVE SUMMARY ================= */
@@ -196,14 +99,12 @@ function renderLifecycle() {
 function renderExecutiveSummary() {
 
     const container = document.getElementById("financialPositionSummary");
-    if (!container) return;
 
     const totalRevenue = sum("revenue");
     const totalProfit = sum("profit");
     const margin = getMargin();
     const growth = calculateMonthlyGrowth();
     const volatility = calculateVolatility();
-    const age = getBusinessAgeMonths();
 
     container.innerHTML = `
         <p>Total Revenue: ${formatCurrency(totalRevenue)}</p>
@@ -211,92 +112,169 @@ function renderExecutiveSummary() {
         <p>Profit Margin: ${margin.toFixed(2)}%</p>
         <p>Average Monthly Growth: ${growth.toFixed(2)}%</p>
         <p>Revenue Volatility: ${volatility.toFixed(2)}%</p>
-        <p>Business Age: ${age} months</p>
     `;
+}
+
+/* ================= LIFECYCLE ================= */
+
+function renderLifecycle() {
+
+    const container = document.getElementById("lifecycleClassification");
+
+    if (businessData.length < 2) {
+        container.innerHTML = "Enter at least 2 months for lifecycle analysis.";
+        return;
+    }
+
+    const volatility = calculateVolatility();
+    const growth = calculateMonthlyGrowth();
+
+    let classification = "Stabilisation Phase";
+
+    if (volatility > 35) classification = "At-Risk Phase";
+    else if (growth > 10) classification = "Expansion Phase";
+    else if (volatility < 15) classification = "Stable Phase";
+
+    container.innerHTML = `<strong>Lifecycle Classification:</strong> ${classification}`;
+}
+
+/* ================= FORECAST ================= */
+
+function renderForecasts() {
+
+    if (businessData.length < 2) return;
+
+    const first = businessData[0];
+    const last = businessData[businessData.length - 1];
+
+    const monthsDiff =
+        (last.date.getFullYear() - first.date.getFullYear()) * 12 +
+        (last.date.getMonth() - first.date.getMonth());
+
+    if (monthsDiff <= 0 || first.revenue <= 0) return;
+
+    const cagr = Math.pow(last.revenue / first.revenue, 1 / monthsDiff) - 1;
+
+    generateProjection("forecast6m", 6, cagr);
+    generateProjection("forecast1y", 12, cagr);
+    generateProjection("forecast3y", 36, cagr);
+    generateProjection("forecast5y", 60, cagr);
+}
+
+function generateProjection(id, months, cagr) {
+
+    forecastCharts[id]?.destroy();
+
+    const last = businessData[businessData.length - 1];
+    let revenue = last.revenue;
+    let date = new Date(last.date);
+
+    let labels = [];
+    let data = [];
+
+    for (let i = 1; i <= months; i++) {
+        revenue *= (1 + cagr);
+        date.setMonth(date.getMonth() + 1);
+        labels.push(date.toISOString().slice(0,7));
+        data.push(Math.round(revenue));
+    }
+
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+
+    forecastCharts[id] = new Chart(canvas.getContext("2d"), {
+        type: "line",
+        data: { labels, datasets: [{ label: "Projected Revenue", data, borderColor:"#f59e0b", tension:0.3 }]},
+        options: { responsive:true, maintainAspectRatio:false }
+    });
+}
+
+/* ================= PERFORMANCE MATRIX ================= */
+
+function renderPerformanceMatrix() {
+
+    if (businessData.length < 2) return;
+
+    const volatility = calculateVolatility();
+    const growth = calculateMonthlyGrowth();
+    const margin = getMargin();
+
+    const stabilityScore = Math.max(0, 100 - volatility);
+    const growthScore = Math.min(Math.abs(growth)*5,100);
+    const profitabilityScore = Math.min(margin*3,100);
+
+    performanceBarChart?.destroy();
+
+    const barCanvas = document.getElementById("performanceBarChart");
+    performanceBarChart = new Chart(barCanvas.getContext("2d"),{
+        type:"bar",
+        data:{
+            labels:["Stability","Growth","Profitability"],
+            datasets:[{
+                data:[stabilityScore,growthScore,profitabilityScore],
+                backgroundColor:["#22c55e","#f59e0b","#8b5cf6"]
+            }]
+        },
+        options:{ scales:{ y:{ beginAtZero:true,max:100 } } }
+    });
+
+    document.getElementById("businessHealthIndex").innerHTML =
+        `Composite Index: ${Math.round((stabilityScore+growthScore+profitabilityScore)/3)} / 100`;
+}
+
+/* ================= RISK ================= */
+
+function renderRiskAssessment() {
+
+    const volatility = calculateVolatility();
+    const margin = getMargin();
+
+    document.getElementById("stabilityRisk").innerHTML =
+        volatility > 35 ? "Elevated" : "Low";
+
+    document.getElementById("marginRisk").innerHTML =
+        margin < 8 ? "Elevated" : "Low";
+
+    document.getElementById("liquidityRisk").innerHTML =
+        margin > 5 ? "Stable" : "Constrained";
 }
 
 /* ================= STABILITY ENGINE ================= */
 
-function calculateStructuralStates() {
-
-    return {
-        volatility: calculateVolatility(),
-        margin: getMargin(),
-        growth: calculateMonthlyGrowth()
-    };
-}
-
-function calculateInteractionSensitivity(states) {
-
-    let iss = states.volatility;
-
-    if (states.margin < 10) iss *= 1.5;
-    if (states.margin > 20) iss *= 0.7;
-
-    if (states.growth > 15 && states.margin < 10) iss += 15;
-    if (states.growth < 0 && states.volatility > 25) iss += 10;
-
-    return Math.max(0, Math.min(100, iss));
-}
-
-function determineStabilityRegime(states, iss) {
-
-    if (states.volatility > 25 && states.margin < 10 && iss >= 60)
-        return "Structural Fragility Regime";
-
-    if (iss >= 40)
-        return "Financial Stress Regime";
-
-    if (states.growth > 15 && states.margin >= 10)
-        return "Controlled Expansion Regime";
-
-    return "Structural Stability Regime";
-}
-
-function calculateStabilityIndex(regime, iss) {
-
-    let score = 100 - iss;
-
-    if (regime === "Structural Fragility Regime") score -= 20;
-    if (regime === "Financial Stress Regime") score -= 10;
-    if (regime === "Controlled Expansion Regime") score += 5;
-    if (regime === "Structural Stability Regime") score += 10;
-
-    return Math.max(0, Math.min(100, Math.round(score)));
-}
-
 function renderFinancialStabilityAssessment() {
 
-    const states = calculateStructuralStates();
-    const iss = calculateInteractionSensitivity(states);
-    const regime = determineStabilityRegime(states, iss);
-    const index = calculateStabilityIndex(regime, iss);
+    const volatility = calculateVolatility();
+    const margin = getMargin();
+    const growth = calculateMonthlyGrowth();
+
+    let regime = "Structural Stability";
+    if (volatility > 30 && margin < 10) regime = "Structural Fragility";
+    else if (growth > 15 && margin > 10) regime = "Controlled Expansion";
+    else if (volatility > 25) regime = "Financial Stress";
+
+    const stabilityIndex = Math.max(0, Math.min(100,
+        Math.round(100 - volatility + margin - Math.abs(growth)/2)
+    ));
 
     document.getElementById("stabilityRegimeOutput").innerHTML = `<strong>${regime}</strong>`;
-    document.getElementById("interactionSensitivityOutput").innerHTML = `${iss.toFixed(2)} / 100`;
-    document.getElementById("stabilityIndexOutput").innerHTML = `<strong>${index} / 100</strong>`;
+    document.getElementById("interactionSensitivityOutput").innerHTML = volatility.toFixed(2);
+    document.getElementById("stabilityIndexOutput").innerHTML = `<strong>${stabilityIndex} / 100</strong>`;
 }
 
 /* ================= HELPERS ================= */
 
 function calculateMonthlyGrowth() {
     if (businessData.length < 2) return 0;
-    let rates = [];
-    for (let i=1;i<businessData.length;i++){
-        const prev=businessData[i-1].revenue;
-        const curr=businessData[i].revenue;
-        if(prev>0) rates.push((curr-prev)/prev);
-    }
-    if(!rates.length) return 0;
-    return (rates.reduce((a,b)=>a+b,0)/rates.length)*100;
+    const first = businessData[0].revenue;
+    const last = businessData[businessData.length - 1].revenue;
+    return ((last - first) / first) * 100;
 }
 
 function calculateVolatility(){
     if (businessData.length < 2) return 0;
-    const revenues=businessData.map(d=>d.revenue);
-    const mean=revenues.reduce((a,b)=>a+b,0)/revenues.length;
-    if(mean===0) return 0;
-    const variance=revenues.reduce((a,b)=>a+Math.pow(b-mean,2),0)/revenues.length;
+    const revenues = businessData.map(d=>d.revenue);
+    const mean = revenues.reduce((a,b)=>a+b,0)/revenues.length;
+    const variance = revenues.reduce((a,b)=>a+Math.pow(b-mean,2),0)/revenues.length;
     return (Math.sqrt(variance)/mean)*100;
 }
 
@@ -323,7 +301,7 @@ function showSection(sectionId, event) {
     document.querySelectorAll(".page-section").forEach(sec =>
         sec.classList.remove("active-section")
     );
-    document.getElementById(sectionId)?.classList.add("active-section");
+    document.getElementById(sectionId).classList.add("active-section");
 
     document.querySelectorAll(".sidebar li").forEach(li =>
         li.classList.remove("active")
