@@ -108,107 +108,50 @@ function resetAdvancedSections() {
     });
 }
 
-/* ================= EXECUTIVE SUMMARY ================= */
+/* ================= CORE CHARTS (FIXED) ================= */
 
-function renderExecutiveSummary() {
+function renderCoreCharts() {
 
-    const container = document.getElementById("financialPositionSummary");
-    const classificationEl = document.getElementById("financialClassification");
-    const commentaryEl = document.getElementById("executiveCommentary");
+    revenueChart?.destroy();
+    profitChart?.destroy();
+    expenseChart?.destroy();
 
-    const totalRevenue = sum("revenue");
-    const totalProfit = sum("profit");
-    const margin = getMargin();
-    const growth = calculateMonthlyGrowth();
-    const volatility = calculateVolatility();
+    const labels = businessData.map(d => d.date.toISOString().slice(0,7));
 
-    container.innerHTML = `
-        <p>Total Revenue: ${formatCurrency(totalRevenue)}</p>
-        <p>Net Profit: ${formatCurrency(totalProfit)}</p>
-        <p>Profit Margin: ${margin.toFixed(2)}%</p>
-        <p>Average Monthly Growth: ${growth.toFixed(2)}%</p>
-        <p>Revenue Volatility: ${volatility.toFixed(2)}%</p>
-    `;
-
-    let status = "Stable Operating Position";
-    if (volatility > 35) status = "Volatility Risk Exposure";
-    else if (margin < 10) status = "Margin Compression Risk";
-    else if (growth > 15) status = "Accelerated Growth Phase";
-
-    classificationEl.innerHTML = status;
-    commentaryEl.innerHTML =
-        "Financial structure evaluated across growth, margin and volatility dynamics.";
+    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
+    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
+    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
 }
 
-/* ================= LIFECYCLE ================= */
+function createChart(id,type,labels,data,label){
 
-function renderLifecycle() {
+    const maxValue = Math.max(...data);
+    const suggestedMax = maxValue * 1.2; // prevent vertical stretching
 
-    const container = document.getElementById("lifecycleClassification");
-
-    if (businessData.length < 3) {
-        container.innerHTML = "Enter at least 3 months for lifecycle analysis.";
-        return;
-    }
-
-    const volatility = calculateVolatility();
-    const growth = calculateMonthlyGrowth();
-
-    let classification = "Stabilisation Phase";
-    if (volatility > 35) classification = "At-Risk Phase";
-    else if (growth > 10) classification = "Expansion Phase";
-    else if (volatility < 15) classification = "Stable Phase";
-
-    container.innerHTML = `<strong>Lifecycle Classification:</strong> ${classification}`;
+    return new Chart(document.getElementById(id),{
+        type,
+        data:{
+            labels,
+            datasets:[{
+                label,
+                data,
+                tension: 0.3
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            scales:{
+                y:{
+                    beginAtZero:true,
+                    suggestedMax: suggestedMax
+                }
+            }
+        }
+    });
 }
 
-/* ================= INSIGHTS ================= */
-
-function renderInsights() {
-
-    const volatility = calculateVolatility();
-    const margin = getMargin();
-    const growth = calculateMonthlyGrowth();
-
-    let insight = "Operating structure stable.";
-
-    if (volatility > 35)
-        insight = "Revenue volatility elevated — cash flow risk increased.";
-    else if (margin < 10)
-        insight = "Margin compression detected.";
-    else if (growth > 15)
-        insight = "Strong expansion phase detected.";
-
-    setText("insightEngine", insight);
-}
-
-/* ================= STABILITY ENGINE ================= */
-
-function renderFinancialStabilityAssessment() {
-
-    const volatility = calculateVolatility();
-    const margin = getMargin();
-    const growth = calculateMonthlyGrowth();
-
-    let regime = "Structural Stability";
-    if (volatility > 30 && margin < 10) regime = "Structural Fragility";
-    else if (growth > 15 && margin > 10) regime = "Controlled Expansion";
-    else if (volatility > 25) regime = "Financial Stress";
-
-    const stabilityIndex = Math.max(0, Math.min(100,
-        Math.round(100 - volatility + margin - Math.abs(growth)/2)
-    ));
-
-    setText("stabilityRegimeOutput", `<strong>${regime}</strong>`);
-    setText("interactionSensitivityOutput", volatility.toFixed(2));
-    setText("stabilityIndexOutput", `<strong>${stabilityIndex} / 100</strong>`);
-
-    setText("stabilityInterpretation", "Structural stability evaluated against volatility and margin interaction.");
-    setText("stabilityFocus", "Maintain margin discipline and revenue consistency.");
-    setText("stabilityOutlook", "Forward outlook based on recent structural behaviour.");
-}
-
-/* ================= FORECAST ================= */
+/* ================= FORECAST (FIXED SCALING) ================= */
 
 function renderForecasts() {
 
@@ -250,88 +193,29 @@ function generateProjection(id, months, cagr) {
         data.push(Math.round(revenue));
     }
 
+    const maxValue = Math.max(...data);
+    const suggestedMax = maxValue * 1.2;
+
     forecastCharts[id] = new Chart(canvas.getContext("2d"), {
         type: "line",
-        data: { labels, datasets: [{ label: "Projected Revenue", data }] },
-        options: { responsive:true, maintainAspectRatio:false }
-    });
-}
-
-/* ================= PERFORMANCE MATRIX ================= */
-
-function renderPerformanceMatrix() {
-
-    const volatility = calculateVolatility();
-    const growth = calculateMonthlyGrowth();
-    const margin = getMargin();
-
-    const stabilityScore = Math.max(0, 100 - volatility);
-    const growthScore = Math.min(Math.abs(growth)*5,100);
-    const profitabilityScore = Math.min(margin*3,100);
-
-    performanceBarChart?.destroy();
-    distributionPieChart?.destroy();
-
-    performanceBarChart = new Chart(
-        document.getElementById("performanceBarChart"),
-        {
-            type:"bar",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
-            },
-            options:{ scales:{ y:{ beginAtZero:true,max:100 } } }
-        }
-    );
-
-    distributionPieChart = new Chart(
-        document.getElementById("distributionPieChart"),
-        {
-            type:"pie",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
+        data: {
+            labels,
+            datasets: [{
+                label: "Projected Revenue",
+                data,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive:true,
+            maintainAspectRatio:false,
+            scales:{
+                y:{
+                    beginAtZero:true,
+                    suggestedMax: suggestedMax
+                }
             }
         }
-    );
-
-    setText("businessHealthIndex",
-        `Composite Index: ${Math.round((stabilityScore+growthScore+profitabilityScore)/3)} / 100`
-    );
-}
-
-/* ================= RISK ================= */
-
-function renderRiskAssessment() {
-
-    const volatility = calculateVolatility();
-    const margin = getMargin();
-
-    setText("stabilityRisk", volatility > 35 ? "Elevated" : "Low");
-    setText("marginRisk", margin < 8 ? "Elevated" : "Low");
-    setText("liquidityRisk", margin > 5 ? "Stable" : "Constrained");
-}
-
-/* ================= CORE CHARTS ================= */
-
-function renderCoreCharts() {
-
-    revenueChart?.destroy();
-    profitChart?.destroy();
-    expenseChart?.destroy();
-
-    const labels = businessData.map(d => d.date.toISOString().slice(0,7));
-
-    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
-    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
-    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
-}
-
-function createChart(id,type,labels,data,label){
-    return new Chart(document.getElementById(id),{
-        type,
-        data:{ labels, datasets:[{ label, data }] },
-        options:{ responsive:true, maintainAspectRatio:false }
     });
 }
 
