@@ -83,7 +83,7 @@ function updateAll() {
     }
 }
 
-/* ================= RESET ================= */
+/* ================= RESET IF UNDER 3 MONTHS ================= */
 
 function resetAdvancedSections() {
 
@@ -102,8 +102,10 @@ function resetAdvancedSections() {
     performanceBarChart?.destroy();
     distributionPieChart?.destroy();
 
-    Object.values(forecastCharts).forEach(chart => chart?.destroy());
-    forecastCharts = {};
+    Object.keys(forecastCharts).forEach(key => {
+        forecastCharts[key]?.destroy();
+        delete forecastCharts[key];
+    });
 }
 
 /* ================= EXECUTIVE SUMMARY ================= */
@@ -113,8 +115,6 @@ function renderExecutiveSummary() {
     const container = document.getElementById("financialPositionSummary");
     const classificationEl = document.getElementById("financialClassification");
     const commentaryEl = document.getElementById("executiveCommentary");
-
-    if (!container) return;
 
     const totalRevenue = sum("revenue");
     const totalProfit = sum("profit");
@@ -145,7 +145,6 @@ function renderExecutiveSummary() {
 function renderLifecycle() {
 
     const container = document.getElementById("lifecycleClassification");
-    if (!container) return;
 
     if (businessData.length < 3) {
         container.innerHTML = "Enter at least 3 months for lifecycle analysis.";
@@ -161,6 +160,52 @@ function renderLifecycle() {
     else if (volatility < 15) classification = "Stable Phase";
 
     container.innerHTML = `<strong>Lifecycle Classification:</strong> ${classification}`;
+}
+
+/* ================= INSIGHTS ================= */
+
+function renderInsights() {
+
+    const volatility = calculateVolatility();
+    const margin = getMargin();
+    const growth = calculateMonthlyGrowth();
+
+    let insight = "Operating structure stable.";
+
+    if (volatility > 35)
+        insight = "Revenue volatility elevated — cash flow risk increased.";
+    else if (margin < 10)
+        insight = "Margin compression detected.";
+    else if (growth > 15)
+        insight = "Strong expansion phase detected.";
+
+    setText("insightEngine", insight);
+}
+
+/* ================= STABILITY ENGINE ================= */
+
+function renderFinancialStabilityAssessment() {
+
+    const volatility = calculateVolatility();
+    const margin = getMargin();
+    const growth = calculateMonthlyGrowth();
+
+    let regime = "Structural Stability";
+    if (volatility > 30 && margin < 10) regime = "Structural Fragility";
+    else if (growth > 15 && margin > 10) regime = "Controlled Expansion";
+    else if (volatility > 25) regime = "Financial Stress";
+
+    const stabilityIndex = Math.max(0, Math.min(100,
+        Math.round(100 - volatility + margin - Math.abs(growth)/2)
+    ));
+
+    setText("stabilityRegimeOutput", `<strong>${regime}</strong>`);
+    setText("interactionSensitivityOutput", volatility.toFixed(2));
+    setText("stabilityIndexOutput", `<strong>${stabilityIndex} / 100</strong>`);
+
+    setText("stabilityInterpretation", "Structural stability evaluated against volatility and margin interaction.");
+    setText("stabilityFocus", "Maintain margin discipline and revenue consistency.");
+    setText("stabilityOutlook", "Forward outlook based on recent structural behaviour.");
 }
 
 /* ================= FORECAST ================= */
@@ -205,7 +250,7 @@ function generateProjection(id, months, cagr) {
         data.push(Math.round(revenue));
     }
 
-    forecastCharts[id] = new Chart(canvas, {
+    forecastCharts[id] = new Chart(canvas.getContext("2d"), {
         type: "line",
         data: { labels, datasets: [{ label: "Projected Revenue", data }] },
         options: { responsive:true, maintainAspectRatio:false }
@@ -215,10 +260,6 @@ function generateProjection(id, months, cagr) {
 /* ================= PERFORMANCE MATRIX ================= */
 
 function renderPerformanceMatrix() {
-
-    const barCanvas = document.getElementById("performanceBarChart");
-    const pieCanvas = document.getElementById("distributionPieChart");
-    if (!barCanvas || !pieCanvas) return;
 
     const volatility = calculateVolatility();
     const growth = calculateMonthlyGrowth();
@@ -231,22 +272,28 @@ function renderPerformanceMatrix() {
     performanceBarChart?.destroy();
     distributionPieChart?.destroy();
 
-    performanceBarChart = new Chart(barCanvas,{
-        type:"bar",
-        data:{
-            labels:["Stability","Growth","Profitability"],
-            datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
-        },
-        options:{ scales:{ y:{ beginAtZero:true,max:100 } } }
-    });
-
-    distributionPieChart = new Chart(pieCanvas,{
-        type:"pie",
-        data:{
-            labels:["Stability","Growth","Profitability"],
-            datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
+    performanceBarChart = new Chart(
+        document.getElementById("performanceBarChart"),
+        {
+            type:"bar",
+            data:{
+                labels:["Stability","Growth","Profitability"],
+                datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
+            },
+            options:{ scales:{ y:{ beginAtZero:true,max:100 } } }
         }
-    });
+    );
+
+    distributionPieChart = new Chart(
+        document.getElementById("distributionPieChart"),
+        {
+            type:"pie",
+            data:{
+                labels:["Stability","Growth","Profitability"],
+                datasets:[{ data:[stabilityScore,growthScore,profitabilityScore] }]
+            }
+        }
+    );
 
     setText("businessHealthIndex",
         `Composite Index: ${Math.round((stabilityScore+growthScore+profitabilityScore)/3)} / 100`
@@ -257,19 +304,17 @@ function renderPerformanceMatrix() {
 
 function renderRiskAssessment() {
 
-    setText("stabilityRisk", calculateVolatility() > 35 ? "Elevated" : "Low");
-    setText("marginRisk", getMargin() < 8 ? "Elevated" : "Low");
-    setText("liquidityRisk", getMargin() > 5 ? "Stable" : "Constrained");
+    const volatility = calculateVolatility();
+    const margin = getMargin();
+
+    setText("stabilityRisk", volatility > 35 ? "Elevated" : "Low");
+    setText("marginRisk", margin < 8 ? "Elevated" : "Low");
+    setText("liquidityRisk", margin > 5 ? "Stable" : "Constrained");
 }
 
 /* ================= CORE CHARTS ================= */
 
 function renderCoreCharts() {
-
-    const revenueCanvas = document.getElementById("revenueChart");
-    const profitCanvas = document.getElementById("profitChart");
-    const expenseCanvas = document.getElementById("expenseChart");
-    if (!revenueCanvas || !profitCanvas || !expenseCanvas) return;
 
     revenueChart?.destroy();
     profitChart?.destroy();
@@ -277,13 +322,13 @@ function renderCoreCharts() {
 
     const labels = businessData.map(d => d.date.toISOString().slice(0,7));
 
-    revenueChart = createChart(revenueCanvas,"line",labels,businessData.map(d=>d.revenue),"Revenue");
-    profitChart = createChart(profitCanvas,"line",labels,businessData.map(d=>d.profit),"Profit");
-    expenseChart = createChart(expenseCanvas,"bar",labels,businessData.map(d=>d.expenses),"Expenses");
+    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
+    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
+    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
 }
 
-function createChart(canvas,type,labels,data,label){
-    return new Chart(canvas,{
+function createChart(id,type,labels,data,label){
+    return new Chart(document.getElementById(id),{
         type,
         data:{ labels, datasets:[{ label, data }] },
         options:{ responsive:true, maintainAspectRatio:false }
@@ -325,11 +370,9 @@ function sum(key){
 /* ================= NAVIGATION ================= */
 
 function showSection(sectionId, event) {
-
     document.querySelectorAll(".page-section").forEach(sec =>
         sec.classList.remove("active-section")
     );
-
     document.getElementById(sectionId)?.classList.add("active-section");
 
     document.querySelectorAll(".sidebar li").forEach(li =>
@@ -337,13 +380,6 @@ function showSection(sectionId, event) {
     );
 
     if (event) event.target.classList.add("active");
-
-    // Re-render when switching to advanced sections
-    if (businessData.length >= 3) {
-        if (sectionId === "forecast") renderForecasts();
-        if (sectionId === "matrix") renderPerformanceMatrix();
-        if (sectionId === "risk") renderRiskAssessment();
-    }
 }
 
 function logout() {
