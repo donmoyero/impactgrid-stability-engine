@@ -18,8 +18,11 @@
 
 <div id="app" class="app-layout">
 
+<!-- ================= MOBILE TOGGLE BUTTON ================= -->
+<button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+
 <!-- ================= SIDEBAR ================= -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="logo-container">
         <img src="logo.png" alt="ImpactGrid Logo" class="logo-img">
         <span class="logo-text">ImpactGrid</span>
@@ -206,5 +209,13 @@
 </div>
 
 <script src="./script.js"></script>
+
+<!-- ================= MOBILE TOGGLE SCRIPT ================= -->
+<script>
+function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("active-mobile");
+}
+</script>
+
 </body>
 </html>
