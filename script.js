@@ -68,13 +68,9 @@ function updateAll() {
 
     if (businessData.length === 0) return;
 
-    renderExecutiveSummary();
-    renderLifecycle();
     renderCoreCharts();
 
     if (businessData.length >= 3) {
-        renderFinancialStabilityAssessment();
-        renderInsights();
         renderForecasts();
         renderPerformanceMatrix();
         renderRiskAssessment();
@@ -83,21 +79,9 @@ function updateAll() {
     }
 }
 
-/* ================= RESET IF UNDER 3 MONTHS ================= */
+/* ================= RESET ================= */
 
 function resetAdvancedSections() {
-
-    setText("stabilityRegimeOutput", "Awaiting sufficient data...");
-    setText("interactionSensitivityOutput", "—");
-    setText("stabilityIndexOutput", "—");
-    setText("stabilityInterpretation", "");
-    setText("stabilityFocus", "");
-    setText("stabilityOutlook", "");
-    setText("insightEngine", "");
-    setText("businessHealthIndex", "");
-    setText("stabilityRisk", "");
-    setText("marginRisk", "");
-    setText("liquidityRisk", "");
 
     performanceBarChart?.destroy();
     distributionPieChart?.destroy();
@@ -108,7 +92,7 @@ function resetAdvancedSections() {
     });
 }
 
-/* ================= CORE CHARTS (FIXED) ================= */
+/* ================= CORE CHARTS ================= */
 
 function renderCoreCharts() {
 
@@ -125,10 +109,13 @@ function renderCoreCharts() {
 
 function createChart(id,type,labels,data,label){
 
-    const maxValue = Math.max(...data);
-    const suggestedMax = maxValue * 1.2; // prevent vertical stretching
+    const canvas = document.getElementById(id);
+    if (!canvas || typeof Chart === "undefined") return null;
 
-    return new Chart(document.getElementById(id),{
+    const maxValue = Math.max(...data);
+    const suggestedMax = maxValue * 1.15;
+
+    return new Chart(canvas,{
         type,
         data:{
             labels,
@@ -151,7 +138,7 @@ function createChart(id,type,labels,data,label){
     });
 }
 
-/* ================= FORECAST (FIXED SCALING) ================= */
+/* ================= FORECAST ================= */
 
 function renderForecasts() {
 
@@ -164,18 +151,21 @@ function renderForecasts() {
 
     if (monthsDiff <= 0 || first.revenue <= 0) return;
 
-    const cagr = Math.pow(last.revenue / first.revenue, 1 / monthsDiff) - 1;
+    const rawCagr = Math.pow(last.revenue / first.revenue, 1 / monthsDiff) - 1;
 
-    generateProjection("forecast6m", 6, cagr);
-    generateProjection("forecast1y", 12, cagr);
-    generateProjection("forecast3y", 36, cagr);
-    generateProjection("forecast5y", 60, cagr);
+    // Cap extreme growth
+    const cappedCagr = Math.max(Math.min(rawCagr, 0.15), -0.15);
+
+    generateProjection("forecast6m", 6, cappedCagr);
+    generateProjection("forecast1y", 12, cappedCagr);
+    generateProjection("forecast3y", 36, cappedCagr);
+    generateProjection("forecast5y", 60, cappedCagr);
 }
 
 function generateProjection(id, months, cagr) {
 
     const canvas = document.getElementById(id);
-    if (!canvas) return;
+    if (!canvas || typeof Chart === "undefined") return;
 
     forecastCharts[id]?.destroy();
 
@@ -187,16 +177,22 @@ function generateProjection(id, months, cagr) {
     let data = [];
 
     for (let i = 1; i <= months; i++) {
-        revenue *= (1 + cagr);
+
+        // Dampened growth
+        const dampening = 1 - (i / (months * 1.5));
+        const adjustedGrowth = cagr * dampening;
+
+        revenue *= (1 + adjustedGrowth);
+
         date.setMonth(date.getMonth() + 1);
         labels.push(date.toISOString().slice(0,7));
         data.push(Math.round(revenue));
     }
 
     const maxValue = Math.max(...data);
-    const suggestedMax = maxValue * 1.2;
+    const suggestedMax = maxValue * 1.1;
 
-    forecastCharts[id] = new Chart(canvas.getContext("2d"), {
+    forecastCharts[id] = new Chart(canvas,{
         type: "line",
         data: {
             labels,
@@ -221,30 +217,12 @@ function generateProjection(id, months, cagr) {
 
 /* ================= HELPERS ================= */
 
-function setText(id, value){
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = value;
-}
-
-function calculateMonthlyGrowth() {
-    if (businessData.length < 2) return 0;
-    const first = businessData[0].revenue;
-    const last = businessData[businessData.length - 1].revenue;
-    return ((last - first) / first) * 100;
-}
-
 function calculateVolatility(){
     if (businessData.length < 2) return 0;
     const revenues = businessData.map(d=>d.revenue);
     const mean = revenues.reduce((a,b)=>a+b,0)/revenues.length;
     const variance = revenues.reduce((a,b)=>a+Math.pow(b-mean,2),0)/revenues.length;
-    return (Math.sqrt(variance)/mean)*100;
-}
-
-function getMargin(){
-    const totalRevenue=sum("revenue");
-    const totalProfit=sum("profit");
-    return totalRevenue>0?(totalProfit/totalRevenue)*100:0;
+    return mean === 0 ? 0 : (Math.sqrt(variance)/mean)*100;
 }
 
 function sum(key){
@@ -254,16 +232,29 @@ function sum(key){
 /* ================= NAVIGATION ================= */
 
 function showSection(sectionId, event) {
+
     document.querySelectorAll(".page-section").forEach(sec =>
         sec.classList.remove("active-section")
     );
-    document.getElementById(sectionId)?.classList.add("active-section");
+
+    const activeSection = document.getElementById(sectionId);
+    activeSection?.classList.add("active-section");
 
     document.querySelectorAll(".sidebar li").forEach(li =>
         li.classList.remove("active")
     );
 
     if (event) event.target.classList.add("active");
+
+    // Force chart resize after section switch
+    setTimeout(() => {
+        revenueChart?.resize();
+        profitChart?.resize();
+        expenseChart?.resize();
+        Object.values(forecastCharts).forEach(chart => chart?.resize());
+        performanceBarChart?.resize();
+        distributionPieChart?.resize();
+    }, 100);
 }
 
 function logout() {
