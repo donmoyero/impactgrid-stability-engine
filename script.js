@@ -62,7 +62,7 @@ function updateAll() {
 
     if (businessData.length >= 2) {
         renderFinancialStabilityAssessment();
-        renderInsights();   // Added
+        renderInsights();
     }
 }
 
@@ -73,6 +73,8 @@ function renderExecutiveSummary() {
     const container = document.getElementById("financialPositionSummary");
     const classificationEl = document.getElementById("financialClassification");
     const commentaryEl = document.getElementById("executiveCommentary");
+
+    if (!container) return;
 
     const totalRevenue = sum("revenue");
     const totalProfit = sum("profit");
@@ -88,8 +90,6 @@ function renderExecutiveSummary() {
         <p>Revenue Volatility: ${volatility.toFixed(2)}%</p>
     `;
 
-    /* --- STATUS --- */
-
     if (classificationEl) {
         let status = "Stable Operating Position";
         if (volatility > 35) status = "Volatility Risk Exposure";
@@ -98,8 +98,6 @@ function renderExecutiveSummary() {
 
         classificationEl.innerHTML = status;
     }
-
-    /* --- COMMENTARY --- */
 
     if (commentaryEl) {
         let commentary = "Financial structure appears balanced across revenue, margin and variability metrics.";
@@ -115,7 +113,7 @@ function renderExecutiveSummary() {
     }
 }
 
-/* ================= INSIGHTS (ADDED BACK) ================= */
+/* ================= INSIGHTS ================= */
 
 function renderInsights() {
 
@@ -155,11 +153,13 @@ function renderFinancialStabilityAssessment() {
         Math.round(100 - volatility + margin - Math.abs(growth)/2)
     ));
 
-    document.getElementById("stabilityRegimeOutput").innerHTML = `<strong>${regime}</strong>`;
-    document.getElementById("interactionSensitivityOutput").innerHTML = volatility.toFixed(2);
-    document.getElementById("stabilityIndexOutput").innerHTML = `<strong>${stabilityIndex} / 100</strong>`;
+    const regimeEl = document.getElementById("stabilityRegimeOutput");
+    const sensitivityEl = document.getElementById("interactionSensitivityOutput");
+    const indexEl = document.getElementById("stabilityIndexOutput");
 
-    /* --- ADD MISSING NARRATIVES --- */
+    if (regimeEl) regimeEl.innerHTML = `<strong>${regime}</strong>`;
+    if (sensitivityEl) sensitivityEl.innerHTML = volatility.toFixed(2);
+    if (indexEl) indexEl.innerHTML = `<strong>${stabilityIndex} / 100</strong>`;
 
     const interpretationEl = document.getElementById("stabilityInterpretation");
     const focusEl = document.getElementById("stabilityFocus");
@@ -189,4 +189,112 @@ function renderFinancialStabilityAssessment() {
     }
 }
 
-/* ================= REST OF ORIGINAL SCRIPT UNCHANGED ================= */
+/* ================= CORE CHARTS ================= */
+
+function renderCoreCharts() {
+
+    revenueChart?.destroy();
+    profitChart?.destroy();
+    expenseChart?.destroy();
+
+    const labels = businessData.map(d => d.date.toISOString().slice(0,7));
+
+    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"#22c55e","Revenue");
+    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"#3b82f6","Profit");
+    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"#ef4444","Expenses");
+}
+
+function createChart(id,type,labels,data,color,label){
+
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+
+    return new Chart(canvas.getContext("2d"),{
+        type,
+        data:{ labels, datasets:[{ label, data, borderColor:color, backgroundColor:type==="bar"?color:"transparent", tension:0.3 }]},
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+    });
+}
+
+/* ================= LIFECYCLE ================= */
+
+function renderLifecycle() {
+
+    const container = document.getElementById("lifecycleClassification");
+    if (!container) return;
+
+    if (businessData.length < 2) {
+        container.innerHTML = "Enter at least 2 months for lifecycle analysis.";
+        return;
+    }
+
+    const volatility = calculateVolatility();
+    const growth = calculateMonthlyGrowth();
+
+    let classification = "Stabilisation Phase";
+    if (volatility > 35) classification = "At-Risk Phase";
+    else if (growth > 10) classification = "Expansion Phase";
+    else if (volatility < 15) classification = "Stable Phase";
+
+    container.innerHTML = `<strong>Lifecycle Classification:</strong> ${classification}`;
+}
+
+/* ================= HELPERS ================= */
+
+function calculateMonthlyGrowth() {
+    if (businessData.length < 2) return 0;
+    const first = businessData[0].revenue;
+    const last = businessData[businessData.length - 1].revenue;
+    return ((last - first) / first) * 100;
+}
+
+function calculateVolatility(){
+    if (businessData.length < 2) return 0;
+    const revenues = businessData.map(d=>d.revenue);
+    const mean = revenues.reduce((a,b)=>a+b,0)/revenues.length;
+    const variance = revenues.reduce((a,b)=>a+Math.pow(b-mean,2),0)/revenues.length;
+    return (Math.sqrt(variance)/mean)*100;
+}
+
+function getMargin(){
+    const totalRevenue=sum("revenue");
+    const totalProfit=sum("profit");
+    return totalRevenue>0?(totalProfit/totalRevenue)*100:0;
+}
+
+function sum(key){
+    return businessData.reduce((a,b)=>a+(b[key]||0),0);
+}
+
+function formatCurrency(val){
+    return "£"+Number(val).toLocaleString(undefined,{
+        minimumFractionDigits:2,
+        maximumFractionDigits:2
+    });
+}
+
+/* ================= NAVIGATION ================= */
+
+function showSection(sectionId, event) {
+    document.querySelectorAll(".page-section").forEach(sec =>
+        sec.classList.remove("active-section")
+    );
+    const target = document.getElementById(sectionId);
+    if (target) target.classList.add("active-section");
+
+    document.querySelectorAll(".sidebar li").forEach(li =>
+        li.classList.remove("active")
+    );
+
+    if (event) event.target.classList.add("active");
+}
+
+function logout() {
+    location.reload();
+}
+
+function bindGlobalFunctions(){
+    window.addData = addData;
+    window.showSection = showSection;
+    window.logout = logout;
+}
