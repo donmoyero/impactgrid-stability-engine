@@ -16,6 +16,12 @@ document.addEventListener("DOMContentLoaded", () => {
     bindGlobalFunctions();
 });
 
+/* ================= DATA VALIDATION ================= */
+
+function hasMinimumData(months = 3) {
+    return businessData.length >= months;
+}
+
 /* ================= ADD DATA ================= */
 
 function addData() {
@@ -26,6 +32,11 @@ function addData() {
 
     if (!monthValue || isNaN(revenue) || isNaN(expenses)) {
         alert("Enter valid financial data.");
+        return;
+    }
+
+    if (revenue < 0 || expenses < 0) {
+        alert("Revenue and expenses must be positive values.");
         return;
     }
 
@@ -50,18 +61,63 @@ function addData() {
 /* ================= MASTER UPDATE ================= */
 
 function updateAll() {
+
     if (!businessData.length) return;
 
     renderExecutiveSummary();
     renderLifecycle();
     renderInsights();
     renderCoreCharts();
-    renderForecasts();
-    renderPerformanceMatrix();
-    renderRiskAssessment();
 
-    // VERSION 2 ENGINE
-    renderFinancialStabilityAssessment();
+    if (hasMinimumData(3)) {
+        renderForecasts();
+        renderPerformanceMatrix();
+        renderRiskAssessment();
+        renderFinancialStabilityAssessment();
+    } else {
+        clearAdvancedSections();
+        showSystemMessage("Minimum 3 months of financial data required for advanced modelling.");
+    }
+}
+
+/* ================= SYSTEM MESSAGE ================= */
+
+function showSystemMessage(message) {
+
+    const regimeEl = document.getElementById("stabilityRegimeOutput");
+    const healthEl = document.getElementById("businessHealthIndex");
+
+    if (regimeEl) regimeEl.innerHTML = `<span style="color:#94a3b8;">${message}</span>`;
+    if (healthEl) healthEl.innerHTML = message;
+}
+
+/* ================= CLEAR ADVANCED SECTIONS ================= */
+
+function clearAdvancedSections() {
+
+    const ids = [
+        "interactionSensitivityOutput",
+        "stabilityIndexOutput",
+        "stabilityInterpretation",
+        "stabilityFocus",
+        "stabilityOutlook",
+        "matrixInterpretation",
+        "stabilityRisk",
+        "marginRisk",
+        "liquidityRisk"
+    ];
+
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = "—";
+    });
+
+    performanceBarChart?.destroy();
+    distributionPieChart?.destroy();
+
+    Object.keys(forecastCharts).forEach(key => {
+        forecastCharts[key]?.destroy();
+    });
 }
 
 /* ================= CORE CHARTS ================= */
@@ -76,32 +132,9 @@ function renderCoreCharts() {
         d.date.toISOString().slice(0,7)
     );
 
-    revenueChart = createChart(
-        "revenueChart",
-        "line",
-        labels,
-        businessData.map(d=>d.revenue),
-        "#22c55e",
-        "Revenue"
-    );
-
-    profitChart = createChart(
-        "profitChart",
-        "line",
-        labels,
-        businessData.map(d=>d.profit),
-        "#3b82f6",
-        "Profit"
-    );
-
-    expenseChart = createChart(
-        "expenseChart",
-        "bar",
-        labels,
-        businessData.map(d=>d.expenses),
-        "#ef4444",
-        "Expenses"
-    );
+    revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"#22c55e","Revenue");
+    profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"#3b82f6","Profit");
+    expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"#ef4444","Expenses");
 }
 
 /* ================= CHART FACTORY ================= */
@@ -113,21 +146,8 @@ function createChart(id,type,labels,data,color,label){
 
     return new Chart(canvas.getContext("2d"),{
         type,
-        data:{
-            labels,
-            datasets:[{
-                label,
-                data,
-                borderColor:color,
-                backgroundColor:type==="bar"?color:"transparent",
-                tension:0.4
-            }]
-        },
-        options:{
-            responsive:true,
-            maintainAspectRatio:false,
-            scales:{ y:{ beginAtZero:true } }
-        }
+        data:{ labels, datasets:[{ label, data, borderColor:color, backgroundColor:type==="bar"?color:"transparent", tension:0.4 }]},
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
     });
 }
 
@@ -152,6 +172,11 @@ function renderLifecycle() {
     const container = document.getElementById("lifecycleClassification");
     if (!container) return;
 
+    if (!hasMinimumData(2)) {
+        container.innerHTML = "Lifecycle classification requires minimum 2 months of data.";
+        return;
+    }
+
     const age = getBusinessAgeMonths();
     const volatility = calculateVolatility();
     const growth = calculateMonthlyGrowth();
@@ -171,9 +196,6 @@ function renderLifecycle() {
 function renderExecutiveSummary() {
 
     const container = document.getElementById("financialPositionSummary");
-    const classificationContainer = document.getElementById("financialClassification");
-    const commentaryContainer = document.getElementById("executiveCommentary");
-
     if (!container) return;
 
     const totalRevenue = sum("revenue");
@@ -191,75 +213,41 @@ function renderExecutiveSummary() {
         <p>Revenue Volatility: ${volatility.toFixed(2)}%</p>
         <p>Business Age: ${age} months</p>
     `;
-
-    let status = "Stable Growth Phase";
-
-    if (volatility > 40) status = "Volatile Early Stage";
-    if (margin < 5) status = "Margin Compression Risk";
-    if (growth > 8) status = "Expansion Phase";
-
-    classificationContainer.innerHTML = status;
-
-    commentaryContainer.innerHTML =
-        "Financial position reflects structural performance across revenue growth, margin efficiency and revenue variability.";
 }
 
-/* ================= VERSION 2 – STABILITY ENGINE ================= */
+/* ================= STABILITY ENGINE ================= */
 
 function calculateStructuralStates() {
 
-    const volatility = calculateVolatility();
-    const margin = getMargin();
-    const growth = calculateMonthlyGrowth();
-    const age = getBusinessAgeMonths();
-
-    let volatilityState = "Low";
-    if (volatility > 25) volatilityState = "High";
-    else if (volatility > 10) volatilityState = "Moderate";
-
-    let marginState = "Weak";
-    if (margin > 20) marginState = "Strong";
-    else if (margin >= 10) marginState = "Resilient";
-
-    let growthState = "Stable";
-    if (growth > 15) growthState = "Accelerating";
-    else if (growth < 0) growthState = "Contracting";
-
-    let lifecycle = "Early";
-    if (age > 60) lifecycle = "Mature";
-    else if (age > 24) lifecycle = "Scaling";
-
-    return { volatility, margin, growth, age, volatilityState, marginState, growthState, lifecycle };
+    return {
+        volatility: calculateVolatility(),
+        margin: getMargin(),
+        growth: calculateMonthlyGrowth()
+    };
 }
 
 function calculateInteractionSensitivity(states) {
 
     let iss = states.volatility;
 
-    if (states.marginState === "Weak") iss *= 1.5;
-    if (states.marginState === "Strong") iss *= 0.7;
+    if (states.margin < 10) iss *= 1.5;
+    if (states.margin > 20) iss *= 0.7;
 
-    if (states.growthState === "Accelerating" && states.marginState === "Weak")
-        iss += 15;
-
-    if (states.growthState === "Accelerating" && states.marginState === "Strong")
-        iss -= 5;
-
-    if (states.growthState === "Contracting" && states.volatilityState === "High")
-        iss += 10;
+    if (states.growth > 15 && states.margin < 10) iss += 15;
+    if (states.growth < 0 && states.volatility > 25) iss += 10;
 
     return Math.max(0, Math.min(100, iss));
 }
 
 function determineStabilityRegime(states, iss) {
 
-    if (states.volatilityState === "High" && states.marginState === "Weak" && iss >= 60)
+    if (states.volatility > 25 && states.margin < 10 && iss >= 60)
         return "Structural Fragility Regime";
 
-    if (iss >= 40 && (states.marginState === "Weak" || states.volatilityState === "High"))
+    if (iss >= 40)
         return "Financial Stress Regime";
 
-    if (states.growthState === "Accelerating" && (states.marginState === "Resilient" || states.marginState === "Strong"))
+    if (states.growth > 15 && states.margin >= 10)
         return "Controlled Expansion Regime";
 
     return "Structural Stability Regime";
@@ -284,42 +272,15 @@ function renderFinancialStabilityAssessment() {
     const regime = determineStabilityRegime(states, iss);
     const index = calculateStabilityIndex(regime, iss);
 
-    const interpretationEl = document.getElementById("stabilityInterpretation");
-    const focusEl = document.getElementById("stabilityFocus");
-    const outlookEl = document.getElementById("stabilityOutlook");
-
     document.getElementById("stabilityRegimeOutput").innerHTML = `<strong>${regime}</strong>`;
     document.getElementById("interactionSensitivityOutput").innerHTML = `${iss.toFixed(2)} / 100`;
     document.getElementById("stabilityIndexOutput").innerHTML = `<strong>${index} / 100</strong>`;
-
-    if (regime === "Structural Fragility Regime") {
-        interpretationEl.innerHTML = "Structural exposure to volatility and margin weakness.";
-        focusEl.innerHTML = "Reinforce margin and stabilise revenue streams immediately.";
-        outlookEl.innerHTML = "High instability risk without corrective measures.";
-    }
-
-    if (regime === "Financial Stress Regime") {
-        interpretationEl.innerHTML = "Elevated sensitivity to financial shocks.";
-        focusEl.innerHTML = "Improve cost control and revenue predictability.";
-        outlookEl.innerHTML = "Recoverable with disciplined management.";
-    }
-
-    if (regime === "Controlled Expansion Regime") {
-        interpretationEl.innerHTML = "Growth supported by margin resilience.";
-        focusEl.innerHTML = "Protect margins while scaling.";
-        outlookEl.innerHTML = "Positive outlook if volatility remains controlled.";
-    }
-
-    if (regime === "Structural Stability Regime") {
-        interpretationEl.innerHTML = "Low structural sensitivity to volatility.";
-        focusEl.innerHTML = "Maintain disciplined operations.";
-        outlookEl.innerHTML = "Strong short-term stability.";
-    }
 }
 
 /* ================= HELPERS ================= */
 
 function calculateMonthlyGrowth() {
+    if (businessData.length < 2) return 0;
     let rates = [];
     for (let i=1;i<businessData.length;i++){
         const prev=businessData[i-1].revenue;
@@ -331,6 +292,7 @@ function calculateMonthlyGrowth() {
 }
 
 function calculateVolatility(){
+    if (businessData.length < 2) return 0;
     const revenues=businessData.map(d=>d.revenue);
     const mean=revenues.reduce((a,b)=>a+b,0)/revenues.length;
     if(mean===0) return 0;
