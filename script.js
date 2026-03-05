@@ -68,6 +68,9 @@ function updateAll(){
 
     if(businessData.length===0) return;
 
+    renderRecordsTable();          // NEW
+    updateProgressIndicator();     // NEW
+
     renderExecutiveSummary();
     renderLifecycle();
     renderCoreCharts();
@@ -85,6 +88,63 @@ function updateAll(){
         resetAdvancedSections();
 
     }
+}
+
+/* ================= RECORD TABLE ================= */
+
+function renderRecordsTable(){
+
+    const tbody=document.getElementById("recordsTableBody");
+    if(!tbody) return;
+
+    tbody.innerHTML="";
+
+    businessData.forEach(record=>{
+
+        const row=document.createElement("tr");
+
+        const month=record.date.toISOString().slice(0,7);
+
+        row.innerHTML=`
+        <td>${month}</td>
+        <td>${formatCurrency(record.revenue)}</td>
+        <td>${formatCurrency(record.expenses)}</td>
+        <td>${formatCurrency(record.profit)}</td>
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+/* ================= DATA PROGRESS ================= */
+
+function updateProgressIndicator(){
+
+    const progress=document.getElementById("dataProgress");
+    if(!progress) return;
+
+    const count=businessData.length;
+
+    if(count<3){
+
+        const remaining=3-count;
+
+        progress.innerHTML=`
+        ${count} / 3 months entered<br>
+        Enter ${remaining} more month${remaining>1?"s":""} to activate ImpactGrid Insights.
+        `;
+
+    }else{
+
+        progress.innerHTML=`
+        ${count} months recorded<br>
+        <strong>ImpactGrid Insights Activated</strong>
+        `;
+
+    }
+
 }
 
 /* ================= RESET IF <3 MONTHS ================= */
