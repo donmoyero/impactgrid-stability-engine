@@ -82,7 +82,10 @@ function updateAll(){
         renderForecasts();
         renderPerformanceMatrix();
         renderRiskAssessment();
-        renderAIInsights();
+
+        if(document.getElementById("aiFinancial")){
+            renderAIInsights();
+        }
 
     }else{
 
@@ -162,7 +165,7 @@ function resetAdvancedSections(){
     setText("liquidityRisk","");
     setText("riskInsight","");
 
-    setText("aiFinancial","");
+    setText("aiFinancial","Enter at least 3 months of data to activate ImpactGrid AI.");
     setText("aiOperations","");
     setText("aiForecast","");
     setText("aiPerformance","");
@@ -239,6 +242,17 @@ function renderLifecycle(){
 function renderAIInsights(){
 
     if(!document.getElementById("aiFinancial")) return;
+
+    if(businessData.length < 3){
+
+        setText("aiFinancial","Enter at least 3 months of financial data to activate AI insights.");
+        setText("aiOperations","");
+        setText("aiForecast","");
+        setText("aiPerformance","");
+        setText("aiRisk","");
+
+        return;
+    }
 
     const volatility=calculateVolatility();
     const margin=getMargin();
@@ -328,7 +342,7 @@ function showSection(sectionId,event){
         if(sectionId==="forecast") renderForecasts();
         if(sectionId==="matrix") renderPerformanceMatrix();
         if(sectionId==="risk") renderRiskAssessment();
-        if(sectionId==="ai") renderAIInsights();   // FIXED
+        if(sectionId==="ai") renderAIInsights();
 
     },100);
 }
