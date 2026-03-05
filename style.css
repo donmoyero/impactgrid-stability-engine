@@ -18,15 +18,55 @@ body {
     min-height: 100vh;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 .hidden { display: none !important; }
-.page-section { display: none; }
-.active-section { display: block; }
+
+/* FIX: improves section switching stability */
+.page-section {
+    display: none;
+    width: 100%;
+}
+
+.active-section {
+    display: block;
+}
+
+/* =========================================================
+   LIGHT MODE
+========================================================= */
+
+body.light-mode {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+body.light-mode .sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+}
+
+body.light-mode .card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+body.light-mode .grid input,
+body.light-mode .grid select {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+}
+
+body.light-mode .sidebar li:hover {
+    background: #f1f5f9;
+}
 
 /* =========================================================
    LAYOUT
 ========================================================= */
+
 .app-layout {
     display: flex;
     min-height: 100vh;
@@ -35,11 +75,33 @@ body {
 /* =========================================================
    SIDEBAR
 ========================================================= */
+
 .sidebar {
     width: 250px;
     background: #0f172a;
     padding: 36px 24px;
     border-right: 1px solid #1e293b;
+
+    display: flex;
+    flex-direction: column;
+
+    transition: width 0.25s ease;
+}
+
+/* ===== COLLAPSED SIDEBAR (DESKTOP) ===== */
+
+.sidebar.collapsed{
+    width:70px;
+    overflow:hidden;
+}
+
+/* hide content when collapsed */
+
+.sidebar.collapsed nav,
+.sidebar.collapsed .theme-toggle,
+.sidebar.collapsed button,
+.sidebar.collapsed .logo-text{
+    display:none;
 }
 
 /* ================= LOGO ================= */
@@ -64,7 +126,10 @@ body {
     margin-bottom: 0;
 }
 
-.sidebar ul { list-style: none; }
+.sidebar ul {
+    list-style: none;
+    margin-bottom: 30px;
+}
 
 .sidebar li {
     padding: 13px 15px;
@@ -88,27 +153,35 @@ body {
 }
 
 /* =========================================================
-   MOBILE TOGGLE BUTTON
+   THEME TOGGLE
 ========================================================= */
-.mobile-toggle {
-    display: none;
-    position: fixed;
-    top: 18px;
-    left: 18px;
-    z-index: 1100;
-    background: #111827;
-    color: white;
-    border: none;
+
+.theme-toggle {
+    margin-top: 20px;
     padding: 10px 14px;
-    font-size: 18px;
-    border-radius: 8px;
+    border-radius: 6px;
+    border: 1px solid #1f2937;
+    background: #111827;
+    color: #e5e7eb;
+    font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+.theme-toggle:hover {
+    background: #1f2937;
+}
+
+body.light-mode .theme-toggle {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
 }
 
 /* =========================================================
    MAIN CONTENT
 ========================================================= */
+
 .main-content {
     flex: 1;
     padding-bottom: 70px;
@@ -117,6 +190,7 @@ body {
 /* =========================================================
    HEADER
 ========================================================= */
+
 .dashboard-header {
     padding: 52px 6%;
     border-bottom: 1px solid #1e293b;
@@ -138,6 +212,7 @@ body {
 /* =========================================================
    CARD SYSTEM
 ========================================================= */
+
 .card {
     background: #111827;
     padding: 38px;
@@ -165,6 +240,7 @@ body {
 /* =========================================================
    STRUCTURED BLOCKS
 ========================================================= */
+
 .structured-block {
     margin-top: 30px;
     padding-top: 24px;
@@ -176,6 +252,7 @@ body {
 /* =========================================================
    INPUT GRID
 ========================================================= */
+
 .grid {
     display: grid;
     gap: 18px;
@@ -205,6 +282,7 @@ body {
 /* =========================================================
    BUTTONS
 ========================================================= */
+
 .btn-primary {
     padding: 13px 20px;
     background: #1e40af;
@@ -217,24 +295,26 @@ body {
 }
 
 /* =========================================================
-   CHART FIX (CRITICAL ADDITION)
+   CHART FIX
 ========================================================= */
 
 .chart-card,
 .forecast-block {
     position: relative;
-    height: 320px;          /* FIX: controls chart growth */
+    height: 320px;
     margin-bottom: 30px;
+    overflow: hidden;
 }
 
 canvas {
-    width: 100% !important; /* FIX: prevents stretching */
+    width: 100% !important;
     height: 100% !important;
 }
 
 /* =========================================================
    FOOTER
 ========================================================= */
+
 .dashboard-footer {
     text-align: center;
     padding: 50px;
@@ -243,30 +323,42 @@ canvas {
 }
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE (MOBILE SIDEBAR FIX)
 ========================================================= */
+
 @media (max-width: 900px) {
 
-    .mobile-toggle {
-        display: block;
+    /* sidebar collapsed state */
+
+    .sidebar{
+        width:70px;
+        padding:20px 10px;
+        overflow:hidden;
     }
 
-    .sidebar {
-        position: fixed;
-        left: -260px;
-        top: 0;
-        height: 100%;
-        width: 250px;
-        transition: left 0.3s ease;
-        z-index: 1000;
+    /* expanded sidebar */
+
+    .sidebar.active-mobile{
+        width:250px;
+        padding:36px 24px;
     }
 
-    .sidebar.active-mobile {
-        left: 0;
+    /* hide content when collapsed */
+
+    .sidebar:not(.active-mobile) nav,
+    .sidebar:not(.active-mobile) .theme-toggle,
+    .sidebar:not(.active-mobile) button,
+    .sidebar:not(.active-mobile) .logo-text{
+        display:none;
     }
 
-    .main-content {
-        margin-left: 0 !important;
+    /* SHOW content when open */
+
+    .sidebar.active-mobile nav,
+    .sidebar.active-mobile .theme-toggle,
+    .sidebar.active-mobile button,
+    .sidebar.active-mobile .logo-text{
+        display:block;
     }
 
     .card {
@@ -280,6 +372,7 @@ canvas {
 
     .chart-card,
     .forecast-block {
-        height: 260px; /* slightly smaller on mobile */
+        height: 260px;
     }
+
 }
