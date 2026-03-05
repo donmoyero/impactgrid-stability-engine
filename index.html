@@ -115,6 +115,12 @@ Performance Matrix
 Risk Assessment
 </li>
 
+<!-- ===== PHASE 3 ADDITION ===== -->
+
+<li onclick="showSection('ai', event)">
+ImpactGrid AI
+</li>
+
 </ul>
 </nav>
 
@@ -219,8 +225,6 @@ ImpactGrid Financial Stability Regime Model (IFSRM)
 </div>
 
 </section>
-
-<!-- ================= MONTHLY RECORD TABLE ================= -->
 
 <section class="card">
 
@@ -341,7 +345,11 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 <div class="structured-block">
 <h3>Composite Business Health Index</h3>
-<div id="businessHealthIndex"></div>
+
+<!-- SAFE DEFAULT FIX -->
+
+<div id="businessHealthIndex">Awaiting analysis...</div>
+
 </div>
 
 </section>
@@ -371,11 +379,46 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 <div id="liquidityRisk"></div>
 </div>
 
-<!-- ===== PHASE 2 ADDITION ===== -->
-
 <div class="structured-block">
 <h3>ImpactGrid Risk Insight</h3>
 <div id="riskInsight"></div>
+</div>
+
+</section>
+
+</section>
+
+<!-- ================= PHASE 3 ================= -->
+
+<section id="ai" class="page-section">
+
+<section class="card">
+
+<h2>ImpactGrid AI Intelligence</h2>
+
+<div class="structured-block">
+<h3>Financial Overview Insight</h3>
+<div id="aiFinancial"></div>
+</div>
+
+<div class="structured-block">
+<h3>Operational Performance Insight</h3>
+<div id="aiOperations"></div>
+</div>
+
+<div class="structured-block">
+<h3>Forecast Interpretation</h3>
+<div id="aiForecast"></div>
+</div>
+
+<div class="structured-block">
+<h3>Performance Analysis</h3>
+<div id="aiPerformance"></div>
+</div>
+
+<div class="structured-block">
+<h3>Risk Interpretation</h3>
+<div id="aiRisk"></div>
 </div>
 
 </section>
@@ -397,8 +440,6 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 <script>
 
-/* ================= SIDEBAR TOGGLE ================= */
-
 function toggleSidebar(){
 
 const sidebar = document.getElementById("sidebar");
@@ -414,8 +455,6 @@ sidebar.classList.toggle("collapsed");
 }
 
 }
-
-/* ================= THEME TOGGLE ================= */
 
 function toggleTheme(){
 
