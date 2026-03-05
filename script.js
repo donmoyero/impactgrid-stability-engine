@@ -426,7 +426,7 @@ function renderRiskAssessment(){
         insight+=" Revenue growth remains strong which supports long-term stability if sustained.";
     }
 
-    setText("riskInsight",`<strong>ImpactGrid Risk Insight</strong><br>${insight}`);
+    setText("riskInsight", insight);
 }
 
 /* ================= CORE CHARTS ================= */
