@@ -82,7 +82,7 @@ function updateAll(){
         renderForecasts();
         renderPerformanceMatrix();
         renderRiskAssessment();
-        renderAIInsights();   // PHASE 3 ADDITION
+        renderAIInsights();
 
     }else{
 
@@ -238,6 +238,8 @@ function renderLifecycle(){
 
 function renderAIInsights(){
 
+    if(!document.getElementById("aiFinancial")) return;
+
     const volatility=calculateVolatility();
     const margin=getMargin();
     const growth=calculateMonthlyGrowth();
@@ -266,23 +268,7 @@ function renderAIInsights(){
     : "Overall operational risk appears manageable under current financial conditions.");
 }
 
-/* ================= REMAINING ORIGINAL CODE ================= */
-
-function renderInsights(){ /* unchanged */ }
-
-function renderFinancialStabilityAssessment(){ /* unchanged */ }
-
-function renderForecasts(){ /* unchanged */ }
-
-function generateProjection(){ /* unchanged */ }
-
-function renderPerformanceMatrix(){ /* unchanged */ }
-
-function renderRiskAssessment(){ /* unchanged */ }
-
-function renderCoreCharts(){ /* unchanged */ }
-
-function createChart(){ /* unchanged */ }
+/* ================= HELPERS ================= */
 
 function setText(id,value){
     const el=document.getElementById(id);
@@ -338,9 +324,12 @@ function showSection(sectionId,event){
     if(event) event.target.classList.add("active");
 
     setTimeout(()=>{
+
         if(sectionId==="forecast") renderForecasts();
         if(sectionId==="matrix") renderPerformanceMatrix();
         if(sectionId==="risk") renderRiskAssessment();
+        if(sectionId==="ai") renderAIInsights();   // FIXED
+
     },100);
 }
 
