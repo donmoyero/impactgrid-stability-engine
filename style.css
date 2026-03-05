@@ -23,7 +23,6 @@ body {
 
 .hidden { display: none !important; }
 
-/* FIX: improves section switching stability */
 .page-section {
     display: none;
     width: 100%;
@@ -88,14 +87,10 @@ body.light-mode .sidebar li:hover {
     transition: width 0.25s ease;
 }
 
-/* ===== COLLAPSED SIDEBAR (DESKTOP) ===== */
-
 .sidebar.collapsed{
     width:70px;
     overflow:hidden;
 }
-
-/* hide content when collapsed */
 
 .sidebar.collapsed nav,
 .sidebar.collapsed .theme-toggle,
@@ -123,7 +118,6 @@ body.light-mode .sidebar li:hover {
     font-size: 18px;
     font-weight: 600;
     letter-spacing: 0.8px;
-    margin-bottom: 0;
 }
 
 .sidebar ul {
@@ -295,6 +289,60 @@ body.light-mode .theme-toggle {
 }
 
 /* =========================================================
+   MONTHLY RECORD TABLE
+========================================================= */
+
+.records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.records-table th {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #1f2937;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.records-table td {
+    padding: 12px;
+    border-bottom: 1px solid #1f2937;
+}
+
+.records-table tr:hover {
+    background: #0f172a;
+}
+
+.progress-box {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 6px;
+    background: #0b1220;
+    border: 1px solid #1f2937;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+
+/* Light mode table */
+
+body.light-mode .records-table th,
+body.light-mode .records-table td{
+    border-bottom:1px solid #e2e8f0;
+}
+
+body.light-mode .records-table tr:hover{
+    background:#f1f5f9;
+}
+
+body.light-mode .progress-box{
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+}
+
+/* =========================================================
    CHART FIX
 ========================================================= */
 
@@ -328,22 +376,16 @@ canvas {
 
 @media (max-width: 900px) {
 
-    /* sidebar collapsed state */
-
     .sidebar{
         width:70px;
         padding:20px 10px;
         overflow:hidden;
     }
 
-    /* expanded sidebar */
-
     .sidebar.active-mobile{
         width:250px;
         padding:36px 24px;
     }
-
-    /* hide content when collapsed */
 
     .sidebar:not(.active-mobile) nav,
     .sidebar:not(.active-mobile) .theme-toggle,
@@ -351,8 +393,6 @@ canvas {
     .sidebar:not(.active-mobile) .logo-text{
         display:none;
     }
-
-    /* SHOW content when open */
 
     .sidebar.active-mobile nav,
     .sidebar.active-mobile .theme-toggle,
