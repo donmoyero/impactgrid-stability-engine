@@ -118,6 +118,8 @@ body.light-mode .sidebar li:hover {
     letter-spacing: 0.8px;
 }
 
+/* ================= SIDEBAR MENU ================= */
+
 .sidebar ul {
     list-style: none;
     margin-bottom: 30px;
@@ -211,6 +213,14 @@ body.light-mode .theme-toggle {
     border-radius: 10px;
     margin: 44px 6%;
     border: 1px solid #1f2937;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* subtle fintech feel */
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
 }
 
 .card h2 {
@@ -284,6 +294,12 @@ body.light-mode .theme-toggle {
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -350,6 +366,10 @@ body.light-mode .progress-box {
     height: 320px;
     margin-bottom: 30px;
     overflow: hidden;
+    background: #0b1220;
+    border-radius: 8px;
+    border: 1px solid #1f2937;
+    padding: 16px;
 }
 
 canvas {
@@ -366,53 +386,6 @@ canvas {
     padding: 50px;
     font-size: 12px;
     color: #64748b;
-}
-
-/* =========================================================
-   RESPONSIVE (MOBILE SIDEBAR FIX)
-========================================================= */
-
-@media (max-width: 900px) {
-
-    .sidebar {
-        width: 70px;
-        padding: 20px 10px;
-        overflow: hidden;
-    }
-
-    .sidebar.active-mobile {
-        width: 250px;
-        padding: 36px 24px;
-    }
-
-    .sidebar:not(.active-mobile) nav,
-    .sidebar:not(.active-mobile) .theme-toggle,
-    .sidebar:not(.active-mobile) button,
-    .sidebar:not(.active-mobile) .logo-text {
-        display: none;
-    }
-
-    .sidebar.active-mobile nav,
-    .sidebar.active-mobile .theme-toggle,
-    .sidebar.active-mobile button,
-    .sidebar.active-mobile .logo-text {
-        display: block;
-    }
-
-    .card {
-        margin: 30px 20px;
-        padding: 28px;
-    }
-
-    .dashboard-header {
-        padding: 30px 20px;
-    }
-
-    .chart-card,
-    .forecast-block {
-        height: 260px;
-    }
-
 }
 
 /* =========================================================
@@ -463,4 +436,51 @@ canvas {
     border-radius: 6px;
     line-height: 1.7;
     font-size: 13px;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+.sidebar {
+width:70px;
+padding:20px 10px;
+overflow:hidden;
+}
+
+.sidebar.active-mobile{
+width:250px;
+padding:36px 24px;
+}
+
+.sidebar:not(.active-mobile) nav,
+.sidebar:not(.active-mobile) .theme-toggle,
+.sidebar:not(.active-mobile) button,
+.sidebar:not(.active-mobile) .logo-text{
+display:none;
+}
+
+.sidebar.active-mobile nav,
+.sidebar.active-mobile .theme-toggle,
+.sidebar.active-mobile button,
+.sidebar.active-mobile .logo-text{
+display:block;
+}
+
+.card {
+margin:30px 20px;
+padding:28px;
+}
+
+.dashboard-header {
+padding:30px 20px;
+}
+
+.chart-card,
+.forecast-block {
+height:260px;
+}
+
 }
