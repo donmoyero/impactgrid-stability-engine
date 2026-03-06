@@ -3,19 +3,18 @@
 let businessData = [];
 let currentCurrency = "GBP";
 
-let revenueChart=null;
-let profitChart=null;
-let expenseChart=null;
+let revenueChart = null;
+let profitChart = null;
+let expenseChart = null;
 
-let forecastCharts={};
-let performanceBarChart=null;
-let distributionPieChart=null;
-let aiForecastChart=null;
+let performanceBarChart = null;
+let distributionPieChart = null;
+let aiForecastChart = null;
 
 
 /* ================= INIT ================= */
 
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded", () => {
 
 bindGlobalFunctions();
 
@@ -26,7 +25,7 @@ bindGlobalFunctions();
 
 function setCurrency(currency){
 
-currentCurrency=currency;
+currentCurrency = currency;
 updateAll();
 
 }
@@ -45,17 +44,17 @@ currency:currentCurrency
 
 function addData(){
 
-const monthValue=document.getElementById("month").value;
-const revenue=parseFloat(document.getElementById("revenue").value);
-const expenses=parseFloat(document.getElementById("expenses").value);
+const monthValue = document.getElementById("month").value;
+const revenue = parseFloat(document.getElementById("revenue").value);
+const expenses = parseFloat(document.getElementById("expenses").value);
 
-if(!monthValue||isNaN(revenue)||isNaN(expenses)){
+if(!monthValue || isNaN(revenue) || isNaN(expenses)){
 alert("Enter valid revenue and expense data.");
 return;
 }
 
-const date=new Date(monthValue+"-01");
-const profit=revenue-expenses;
+const date = new Date(monthValue+"-01");
+const profit = revenue - expenses;
 
 businessData.push({date,revenue,expenses,profit});
 businessData.sort((a,b)=>a.date-b.date);
@@ -71,44 +70,14 @@ function updateAll(){
 
 renderRecordsTable();
 updateProgressIndicator();
-renderExecutiveSummary();
 renderCoreCharts();
 
-if(businessData.length>=3){
+if(businessData.length >= 3){
 
-renderForecasts();
 renderPerformanceMatrix();
 renderRiskAssessment();
-renderAIInsights();
-
-}else{
-
-resetAdvancedSections();
 
 }
-
-}
-
-
-/* ================= RESET ================= */
-
-function resetAdvancedSections(){
-
-setText("businessHealthIndex","Enter at least 3 months of financial data.");
-setText("riskInsight","Awaiting data...");
-setText("aiFinancial","");
-setText("aiOperations","");
-setText("aiForecast","");
-setText("aiPerformance","");
-setText("aiRisk","");
-
-performanceBarChart?.destroy();
-distributionPieChart?.destroy();
-
-Object.keys(forecastCharts).forEach(key=>{
-forecastCharts[key]?.destroy();
-delete forecastCharts[key];
-});
 
 }
 
@@ -117,16 +86,16 @@ delete forecastCharts[key];
 
 function renderRecordsTable(){
 
-const tbody=document.getElementById("recordsTableBody");
+const tbody = document.getElementById("recordsTableBody");
 if(!tbody) return;
 
-tbody.innerHTML="";
+tbody.innerHTML = "";
 
 businessData.forEach(record=>{
 
-const row=document.createElement("tr");
+const row = document.createElement("tr");
 
-row.innerHTML=`
+row.innerHTML = `
 <td>${record.date.toISOString().slice(0,7)}</td>
 <td>${formatCurrency(record.revenue)}</td>
 <td>${formatCurrency(record.expenses)}</td>
@@ -144,21 +113,21 @@ tbody.appendChild(row);
 
 function updateProgressIndicator(){
 
-const progress=document.getElementById("dataProgress");
+const progress = document.getElementById("dataProgress");
 
 if(!progress) return;
 
-const count=businessData.length;
+const count = businessData.length;
 
-if(count<3){
+if(count < 3){
 
-progress.innerHTML=
+progress.innerHTML =
 `${count} / 3 months entered<br>
 Enter ${3-count} more months to activate ImpactGrid Insights`;
 
 }else{
 
-progress.innerHTML=
+progress.innerHTML =
 `${count} months recorded<br>
 <strong>ImpactGrid Insights Activated</strong>`;
 
@@ -167,71 +136,41 @@ progress.innerHTML=
 }
 
 
-/* ================= EXECUTIVE SUMMARY ================= */
-
-function renderExecutiveSummary(){
-
-const container=document.getElementById("financialPositionSummary");
-const classification=document.getElementById("financialClassification");
-const commentary=document.getElementById("executiveCommentary");
-
-if(!container) return;
-
-const revenue=sum("revenue");
-const profit=sum("profit");
-
-const margin=getMargin();
-const growth=calculateMonthlyGrowth();
-const volatility=calculateVolatility();
-
-container.innerHTML=`
-<p>Total Revenue: ${formatCurrency(revenue)}</p>
-<p>Total Profit: ${formatCurrency(profit)}</p>
-<p>Profit Margin: ${margin.toFixed(2)}%</p>
-<p>Growth: ${growth.toFixed(2)}%</p>
-<p>Volatility: ${volatility.toFixed(2)}%</p>
-`;
-
-let status="Stable";
-
-if(volatility>30) status="High Volatility";
-else if(margin<10) status="Low Profit Margin";
-else if(growth>15) status="Expansion Phase";
-
-classification.innerHTML=status;
-
-commentary.innerHTML=
-`Current financial structure indicates ${status.toLowerCase()} with
-${margin.toFixed(1)}% margin and ${growth.toFixed(1)}% growth.`;
-
-}
-
-
 /* ================= CORE CHARTS ================= */
 
 function renderCoreCharts(){
 
-const labels=businessData.map(d=>d.date.toISOString().slice(0,7));
+const labels = businessData.map(d=>d.date.toISOString().slice(0,7));
 
 revenueChart?.destroy();
 profitChart?.destroy();
 expenseChart?.destroy();
 
-revenueChart=createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
-profitChart=createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
-expenseChart=createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
+revenueChart = createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
+profitChart = createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
+expenseChart = createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
 
 }
 
 function createChart(id,type,labels,data,label){
 
-const canvas=document.getElementById(id);
+const canvas = document.getElementById(id);
 if(!canvas) return;
 
 return new Chart(canvas,{
 type,
-data:{labels,datasets:[{label,data}]},
-options:{responsive:true,maintainAspectRatio:false}
+data:{
+labels,
+datasets:[{
+label,
+data,
+tension:0.3
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false
+}
 });
 
 }
@@ -241,40 +180,43 @@ options:{responsive:true,maintainAspectRatio:false}
 
 function renderPerformanceMatrix(){
 
-if(businessData.length<3) return;
+const volatility = calculateVolatility();
+const growth = calculateMonthlyGrowth();
+const margin = getMargin();
 
-const volatility=calculateVolatility();
-const growth=calculateMonthlyGrowth();
-const margin=getMargin();
-
-const stability=100-volatility;
-const growthScore=growth*4;
-const profitScore=margin*3;
+const stability = 100 - volatility;
+const growthScore = growth * 4;
+const profitScore = margin * 3;
 
 performanceBarChart?.destroy();
 distributionPieChart?.destroy();
 
-performanceBarChart=new Chart(
+performanceBarChart = new Chart(
 document.getElementById("performanceBarChart"),
 {
 type:"bar",
 data:{
 labels:["Stability","Growth","Profit"],
-datasets:[{data:[stability,growthScore,profitScore]}]
-}
+datasets:[{
+data:[stability,growthScore,profitScore]
+}]
+},
+options:{responsive:true}
 });
 
-distributionPieChart=new Chart(
+distributionPieChart = new Chart(
 document.getElementById("distributionPieChart"),
 {
 type:"doughnut",
 data:{
 labels:["Stability","Growth","Profit"],
-datasets:[{data:[stability,growthScore,profitScore]}]
+datasets:[{
+data:[stability,growthScore,profitScore]
+}]
 }
 });
 
-const health=Math.round((stability+growthScore+profitScore)/3);
+const health = Math.round((stability+growthScore+profitScore)/3);
 
 setText("businessHealthIndex","Business Health Score: "+health+"/100");
 
@@ -285,10 +227,8 @@ setText("businessHealthIndex","Business Health Score: "+health+"/100");
 
 function renderRiskAssessment(){
 
-if(businessData.length<3) return;
-
-const volatility=calculateVolatility();
-const margin=getMargin();
+const volatility = calculateVolatility();
+const margin = getMargin();
 
 setText("stabilityRisk",volatility>30?"Elevated":"Low");
 setText("marginRisk",margin<10?"Elevated":"Low");
@@ -327,10 +267,24 @@ generateAIResponse(question,output);
 
 }
 
-
 function generateAIResponse(question,output){
 
 const q=question.toLowerCase();
+
+if(q.includes("hi") || q.includes("hello")){
+
+output.innerHTML+=`
+<div class="ai-response">
+Hello. I am ImpactGrid AI.<br><br>
+You can ask for projections like:<br>
+• 3 year projection<br>
+• 5 year projection<br>
+• 10 year projection
+</div>
+`;
+return;
+
+}
 
 const projectionMatch=q.match(/\b(3|5|10)\b/);
 
@@ -342,7 +296,7 @@ generateAIProjection(years);
 
 output.innerHTML+=`
 <div class="ai-response">
-Generating ${years}-year projection based on historical revenue growth.
+Generating ${years}-year projection based on your historical revenue growth.
 </div>
 `;
 
@@ -352,9 +306,9 @@ return;
 
 output.innerHTML+=`
 <div class="ai-response">
-Ask for projections such as:
-• 3 year projection
-• 5 year projection
+Ask for projections such as:<br>
+• 3 year projection<br>
+• 5 year projection<br>
 • 10 year projection
 </div>
 `;
@@ -371,8 +325,6 @@ if(businessData.length<3) return;
 const canvas=document.getElementById("aiForecastChart");
 const explanation=document.getElementById("aiForecastExplanation");
 
-if(!canvas) return;
-
 if(aiForecastChart){
 aiForecastChart.destroy();
 }
@@ -380,9 +332,11 @@ aiForecastChart.destroy();
 const first=businessData[0];
 const last=businessData[businessData.length-1];
 
-const monthsDiff=
-(last.date.getFullYear()-first.date.getFullYear())*12+
+let monthsDiff =
+(last.date.getFullYear()-first.date.getFullYear())*12 +
 (last.date.getMonth()-first.date.getMonth());
+
+if(monthsDiff <= 0) monthsDiff = 1;
 
 const cagr=Math.pow(last.revenue/first.revenue,1/monthsDiff)-1;
 
@@ -420,7 +374,8 @@ if(explanation){
 
 explanation.innerHTML=`
 <strong>ImpactGrid AI Projection Analysis</strong><br><br>
-Projected revenue after ${years} years: <strong>${formatCurrency(data[data.length-1])}</strong>
+Projected revenue after ${years} years:
+<strong>${formatCurrency(data[data.length-1])}</strong>
 `;
 
 }
@@ -451,6 +406,7 @@ return ((last-first)/first)*100;
 function calculateVolatility(){
 
 const revenues=businessData.map(d=>d.revenue);
+
 const mean=revenues.reduce((a,b)=>a+b)/revenues.length;
 
 const variance=revenues.reduce((a,b)=>a+(b-mean)**2,0)/revenues.length;
@@ -492,6 +448,24 @@ if(event) event.target.classList.add("active");
 }
 
 
+/* ================= SIDEBAR ================= */
+
+function toggleSidebar(){
+
+document.getElementById("sidebar").classList.toggle("collapsed");
+
+}
+
+
+/* ================= THEME ================= */
+
+function toggleTheme(){
+
+document.body.classList.toggle("light-mode");
+
+}
+
+
 /* ================= LOGOUT ================= */
 
 async function logout(){
@@ -506,10 +480,12 @@ window.location.href="login.html";
 
 function bindGlobalFunctions(){
 
-window.addData=addData;
-window.setCurrency=setCurrency;
-window.showSection=showSection;
-window.logout=logout;
-window.askImpactGridAI=askImpactGridAI;
+window.addData = addData;
+window.setCurrency = setCurrency;
+window.showSection = showSection;
+window.logout = logout;
+window.askImpactGridAI = askImpactGridAI;
+window.toggleTheme = toggleTheme;
+window.toggleSidebar = toggleSidebar;
 
 }
