@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>ImpactGrid | SME Financial Stability Modelling Engine</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ImpactGrid - Regime-Dependent Financial Stability Modelling for SMEs.">
-  <link rel="icon" href="logo.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css">
-  
-  <!-- Include jsPDF library for PDF generation -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+<meta charset="UTF-8">
+<title>ImpactGrid | SME Financial Stability Modelling Engine</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="ImpactGrid - Regime-Dependent Financial Stability Modelling for SMEs.">
+
+<link rel="icon" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="./style.css">
+
+<!-- PDF ENGINE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
 </head>
 
@@ -19,180 +25,350 @@
 
 <div id="app" class="app-layout">
 
-  <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="logo-container" onclick="toggleSidebar()" style="cursor:pointer;">
-      <img src="logo.png" alt="ImpactGrid Logo" class="logo-img">
-      <div>
-        <span class="logo-text">ImpactGrid</span>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;letter-spacing:0.5px;">
-          Engine v3
-        </div>
-      </div>
-    </div>
+<!-- ================= SIDEBAR ================= -->
 
-    <nav>
-      <ul>
-        <li onclick="showSection('dashboard', event)" class="active">Financial Overview</li>
-        <li onclick="showSection('charts', event)">Operational Charts</li>
-        <li onclick="showSection('matrix', event)">Performance Matrix</li>
-        <li onclick="showSection('risk', event)">Risk Assessment</li>
-        <li onclick="showSection('ai', event)">ImpactGrid AI</li>
-      </ul>
-    </nav>
+<aside class="sidebar" id="sidebar">
 
-    <div class="theme-toggle" onclick="toggleTheme()">Toggle Theme</div>
+<div class="logo-container" onclick="toggleSidebar()" style="cursor:pointer;">
 
-    <div style="margin-top:auto;padding-top:20px;">
-      <button onclick="logout()" class="btn-primary" style="width:100%;">Logout</button>
-    </div>
-  </aside>
+<img src="logo.png" alt="ImpactGrid Logo" class="logo-img">
 
-  <main class="main-content">
+<div>
+<span class="logo-text">ImpactGrid</span>
 
-    <header class="dashboard-header">
-      <h1>SME Financial Stability Modelling Engine</h1>
-      <p class="engine-subtitle">ImpactGrid Financial Stability Regime Model (IFSRM)</p>
-    </header>
-
-    <!-- ================= DASHBOARD ================= -->
-    <section id="dashboard" class="page-section active-section">
-      <section class="card">
-        <h2>Business Profile & Reporting Context</h2>
-        <div class="grid">
-          <div><label>Business Start Date</label><input type="date" id="businessStartDate"></div>
-          <div><label>Current Reporting Date</label><input type="date" id="reportingDate"></div>
-          <div>
-            <label>Primary Business Type</label>
-            <select id="businessType">
-              <option value="cafe">Café / Hospitality</option>
-              <option value="retail">Retail Store</option>
-              <option value="ecommerce">E-commerce</option>
-              <option value="consulting">Consulting</option>
-              <option value="trade">Trade / Contractor</option>
-              <option value="service">Service-Based SME</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label>Reporting Currency</label>
-            <select id="currencySelector" onchange="setCurrency(this.value)">
-              <option value="GBP">GBP (£)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="NGN">NGN (₦)</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
-      <!-- Monthly Financial Data Entry -->
-      <section class="card">
-        <h2>Monthly Financial Data Entry</h2>
-        <div class="grid">
-          <div><label>Reporting Month</label><input type="month" id="month"></div>
-          <div><label>Total Revenue</label><input type="number" id="revenue"></div>
-          <div><label>Total Expenses</label><input type="number" id="expenses"></div>
-          <div><button type="button" class="btn-primary" onclick="addData()">Add Data</button></div>
-        </div>
-      </section>
-
-      <!-- Monthly Financial Records -->
-      <section class="card">
-        <h2>Monthly Financial Records</h2>
-        <table class="records-table">
-          <thead>
-            <tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Profit</th></tr>
-          </thead>
-          <tbody id="recordsTableBody"></tbody>
-        </table>
-        <div class="progress-box" id="dataProgress">0 / 3 months entered</div>
-      </section>
-
-      <!-- ImpactGrid AI Financial Insights -->
-      <section class="card">
-        <h2>ImpactGrid AI Financial Insights</h2>
-        <div id="aiInsights">
-          ImpactGrid AI will analyze your financial data once at least 3 months of records are entered.
-        </div>
-      </section>
-
-    </section>
-
-    <!-- ================= CHARTS ================= -->
-    <section id="charts" class="page-section">
-      <section class="card">
-        <h2>Operational Performance Charts</h2>
-        <div class="chart-card"><canvas id="revenueChart"></canvas></div>
-        <div class="chart-card"><canvas id="profitChart"></canvas></div>
-        <div class="chart-card"><canvas id="expenseChart"></canvas></div>
-      </section>
-    </section>
-
-    <!-- ================= MATRIX ================= -->
-    <section id="matrix" class="page-section">
-      <section class="card">
-        <h2>Performance Matrix</h2>
-        <div class="matrix-grid">
-          <div class="chart-card"><canvas id="performanceBarChart"></canvas></div>
-          <div class="chart-card"><canvas id="distributionPieChart"></canvas></div>
-        </div>
-        <div class="structured-block">
-          <h3>Composite Business Health Index</h3>
-          <div id="businessHealthIndex"></div>
-        </div>
-      </section>
-    </section>
-
-    <!-- ================= RISK ================= -->
-    <section id="risk" class="page-section">
-      <section class="card">
-        <h2>Operational Risk Assessment</h2>
-        <div class="structured-block"><h3>Stability Risk</h3><div id="stabilityRisk"></div></div>
-        <div class="structured-block"><h3>Margin Risk</h3><div id="marginRisk"></div></div>
-        <div class="structured-block"><h3>Liquidity Risk</h3><div id="liquidityRisk"></div></div>
-        <div class="structured-block"><h3>ImpactGrid Risk Insight</h3><div id="riskInsight"></div></div>
-      </section>
-    </section>
-
-    <!-- ================= AI ================= -->
-    <section id="ai" class="page-section">
-      <section class="card">
-        <h2>ImpactGrid AI Intelligence</h2>
-        <div class="ai-chat">
-          <h3>ImpactGrid AI Analyst</h3>
-          <div id="aiChatOutput" class="ai-chat-output"></div>
-          <div class="ai-chat-input">
-            <input id="aiChatInput" placeholder="Ask ImpactGrid AI about your business...">
-            <button class="btn-primary" onclick="askImpactGridAI()">Ask</button>
-          </div>
-        </div>
-
-        <div class="structured-block">
-          <h3>AI Projection Engine</h3>
-          <div class="chart-card" style="height:350px;">
-            <canvas id="aiForecastChart"></canvas>
-          </div>
-          <div id="aiForecastExplanation"></div>
-        </div>
-      </section>
-    </section>
-
-    <!-- ================= PDF Generation Button ================= -->
-    <section class="card">
-      <h2>Generate Financial Report</h2>
-      <button id="generatePDF" class="btn-primary" onclick="generatePDF()">Download PDF</button>
-    </section>
-
-    <footer class="dashboard-footer">
-      © 2026 ImpactGrid Stability Engine
-    </footer>
-
-  </main>
+<div style="font-size:12px;color:#64748b;margin-top:4px;letter-spacing:0.5px;">
+Engine v3
 </div>
 
+</div>
+</div>
+
+<nav>
+
+<ul>
+
+<li onclick="showSection('dashboard', event)" class="active">
+Financial Overview
+</li>
+
+<li onclick="showSection('charts', event)">
+Operational Charts
+</li>
+
+<li onclick="showSection('matrix', event)">
+Performance Matrix
+</li>
+
+<li onclick="showSection('risk', event)">
+Risk Assessment
+</li>
+
+<li onclick="showSection('ai', event)">
+ImpactGrid AI
+</li>
+
+</ul>
+
+</nav>
+
+<div class="theme-toggle" onclick="toggleTheme()">
+Toggle Theme
+</div>
+
+<div style="margin-top:auto;padding-top:20px;">
+<button onclick="logout()" class="btn-primary" style="width:100%;">
+Logout
+</button>
+</div>
+
+</aside>
+
+<!-- ================= MAIN CONTENT ================= -->
+
+<main class="main-content">
+
+<header class="dashboard-header">
+
+<h1>SME Financial Stability Modelling Engine</h1>
+
+<p class="engine-subtitle">
+ImpactGrid Financial Stability Regime Model (IFSRM)
+</p>
+
+</header>
+
+<!-- ================= DASHBOARD ================= -->
+
+<section id="dashboard" class="page-section active-section">
+
+<section class="card">
+
+<h2>Business Profile & Reporting Context</h2>
+
+<div class="grid">
+
+<div>
+<label>Business Start Date</label>
+<input type="date" id="businessStartDate">
+</div>
+
+<div>
+<label>Current Reporting Date</label>
+<input type="date" id="reportingDate">
+</div>
+
+<div>
+<label>Primary Business Type</label>
+
+<select id="businessType">
+
+<option value="cafe">Café / Hospitality</option>
+<option value="retail">Retail Store</option>
+<option value="ecommerce">E-commerce</option>
+<option value="consulting">Consulting</option>
+<option value="trade">Trade / Contractor</option>
+<option value="service">Service-Based SME</option>
+<option value="other">Other</option>
+
+</select>
+
+</div>
+
+<div>
+
+<label>Reporting Currency</label>
+
+<select id="currencySelector" onchange="setCurrency(this.value)">
+
+<option value="GBP">GBP (£)</option>
+<option value="USD">USD ($)</option>
+<option value="EUR">EUR (€)</option>
+<option value="NGN">NGN (₦)</option>
+
+</select>
+
+</div>
+
+</div>
+
+</section>
+
+<section class="card">
+
+<h2>Monthly Financial Data Entry</h2>
+
+<div class="grid">
+
+<div>
+<label>Reporting Month</label>
+<input type="month" id="month">
+</div>
+
+<div>
+<label>Total Revenue</label>
+<input type="number" id="revenue">
+</div>
+
+<div>
+<label>Total Expenses</label>
+<input type="number" id="expenses">
+</div>
+
+<div>
+<button type="button" class="btn-primary" onclick="addData()">Add Data</button>
+</div>
+
+</div>
+
+</section>
+
+<section class="card">
+
+<h2>Monthly Financial Records</h2>
+
+<table class="records-table">
+
+<thead>
+<tr>
+<th>Month</th>
+<th>Revenue</th>
+<th>Expenses</th>
+<th>Profit</th>
+</tr>
+</thead>
+
+<tbody id="recordsTableBody"></tbody>
+
+</table>
+
+<div class="progress-box" id="dataProgress">
+0 / 3 months entered
+</div>
+
+</section>
+
+<section class="card">
+
+<h2>ImpactGrid AI Financial Insights</h2>
+
+<div id="aiInsights">
+
+ImpactGrid AI will analyse your financial data once at least 3 months of records are entered.
+
+</div>
+
+</section>
+
+</section>
+
+<!-- ================= CHARTS ================= -->
+
+<section id="charts" class="page-section">
+
+<section class="card">
+
+<h2>Operational Performance Charts</h2>
+
+<div class="chart-card">
+<canvas id="revenueChart"></canvas>
+</div>
+
+<div class="chart-card">
+<canvas id="profitChart"></canvas>
+</div>
+
+<div class="chart-card">
+<canvas id="expenseChart"></canvas>
+</div>
+
+</section>
+
+</section>
+
+<!-- ================= MATRIX ================= -->
+
+<section id="matrix" class="page-section">
+
+<section class="card">
+
+<h2>Performance Matrix</h2>
+
+<div class="matrix-grid">
+
+<div class="chart-card">
+<canvas id="performanceBarChart"></canvas>
+</div>
+
+<div class="chart-card">
+<canvas id="distributionPieChart"></canvas>
+</div>
+
+</div>
+
+<div class="structured-block">
+
+<h3>Composite Business Health Index</h3>
+
+<div id="businessHealthIndex"></div>
+
+</div>
+
+</section>
+
+</section>
+
+<!-- ================= RISK ================= -->
+
+<section id="risk" class="page-section">
+
+<section class="card">
+
+<h2>Operational Risk Assessment</h2>
+
+<div class="structured-block">
+<h3>Stability Risk</h3>
+<div id="stabilityRisk"></div>
+</div>
+
+<div class="structured-block">
+<h3>Margin Risk</h3>
+<div id="marginRisk"></div>
+</div>
+
+<div class="structured-block">
+<h3>Liquidity Risk</h3>
+<div id="liquidityRisk"></div>
+</div>
+
+<div class="structured-block">
+<h3>ImpactGrid Risk Insight</h3>
+<div id="riskInsight"></div>
+</div>
+
+</section>
+
+</section>
+
+<!-- ================= AI ================= -->
+
+<section id="ai" class="page-section">
+
+<section class="card">
+
+<h2>ImpactGrid AI Intelligence</h2>
+
+<div class="ai-chat">
+
+<h3>ImpactGrid AI Analyst</h3>
+
+<div id="aiChatOutput" class="ai-chat-output"></div>
+
+<div class="ai-chat-input">
+
+<input id="aiChatInput" placeholder="Ask ImpactGrid AI about your business...">
+
+<button class="btn-primary" onclick="askImpactGridAI()">
+Ask
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+</section>
+
+<section class="card">
+
+<h2>Generate Financial Report</h2>
+
+<button class="btn-primary" onclick="generatePDF()">
+Download PDF
+</button>
+
+</section>
+
+<footer class="dashboard-footer">
+
+© 2026 ImpactGrid Stability Engine
+
+</footer>
+
+</main>
+
+</div>
+
+<!-- ================= SCRIPTS ================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- AI ENGINE -->
+<script src="impactgrid-ai.js"></script>
+
+<!-- MAIN ENGINE -->
 <script src="script.js"></script>
 
 </body>
+
 </html>
