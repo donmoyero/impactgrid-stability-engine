@@ -114,7 +114,6 @@ function renderRecordsTable(){
         tbody.appendChild(row);
 
     });
-
 }
 
 /* ================= DATA PROGRESS ================= */
@@ -141,7 +140,6 @@ function updateProgressIndicator(){
         ${count} months recorded<br>
         <strong>ImpactGrid Insights Activated</strong>
         `;
-
     }
 }
 
@@ -150,6 +148,9 @@ function updateProgressIndicator(){
 function renderExecutiveSummary(){
 
     const container=document.getElementById("financialPositionSummary");
+    const classificationEl=document.getElementById("financialClassification");
+    const commentaryEl=document.getElementById("executiveCommentary");
+
     if(!container) return;
 
     const totalRevenue=sum("revenue");
@@ -165,6 +166,46 @@ function renderExecutiveSummary(){
         <p>Average Monthly Growth: ${growth.toFixed(2)}%</p>
         <p>Revenue Volatility: ${volatility.toFixed(2)}%</p>
     `;
+
+    /* ===== Financial Status Classification ===== */
+
+    if(classificationEl){
+
+        let status="Stable Operating Position";
+
+        if(volatility>35){
+            status="Volatility Risk Exposure";
+        }
+        else if(margin<10){
+            status="Margin Compression Risk";
+        }
+        else if(growth>15){
+            status="Accelerated Growth Phase";
+        }
+
+        classificationEl.innerHTML=status;
+    }
+
+    /* ===== Structured Commentary ===== */
+
+    if(commentaryEl){
+
+        let commentary="Financial structure evaluated across growth, margin and volatility dynamics.";
+
+        if(volatility>35){
+            commentary="Revenue volatility suggests fluctuating income patterns.";
+        }
+
+        if(margin<10){
+            commentary+=" Profit margins appear compressed indicating operational cost pressure.";
+        }
+
+        if(growth>12){
+            commentary+=" Revenue growth indicates expansion dynamics.";
+        }
+
+        commentaryEl.innerHTML=commentary;
+    }
 }
 
 /* ================= LIFECYCLE ================= */
@@ -201,7 +242,7 @@ function renderCoreCharts(){
     profitChart?.destroy();
     expenseChart?.destroy();
 
-    const labels = businessData.map(d=>d.date.toISOString().slice(0,7));
+    const labels=businessData.map(d=>d.date.toISOString().slice(0,7));
 
     revenueChart=createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
     profitChart=createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
@@ -215,17 +256,8 @@ function createChart(id,type,labels,data,label){
 
     return new Chart(canvas,{
         type:type,
-        data:{
-            labels:labels,
-            datasets:[{
-                label:label,
-                data:data
-            }]
-        },
-        options:{
-            responsive:true,
-            maintainAspectRatio:false
-        }
+        data:{labels,datasets:[{label,data}]},
+        options:{responsive:true,maintainAspectRatio:false}
     });
 }
 
@@ -274,7 +306,6 @@ function generateProjection(id,months,cagr){
 
         labels.push(date.toISOString().slice(0,7));
         data.push(Math.round(revenue));
-
     }
 
     forecastCharts[id]=new Chart(canvas,{
@@ -307,10 +338,7 @@ function renderPerformanceMatrix(){
     if(barCanvas){
         performanceBarChart=new Chart(barCanvas,{
             type:"bar",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]
-            },
+            data:{labels:["Stability","Growth","Profitability"],datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]},
             options:{scales:{y:{beginAtZero:true,max:100}}}
         });
     }
@@ -318,15 +346,11 @@ function renderPerformanceMatrix(){
     if(pieCanvas){
         distributionPieChart=new Chart(pieCanvas,{
             type:"doughnut",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]
-            }
+            data:{labels:["Stability","Growth","Profitability"],datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]}
         });
     }
 
-    setText(
-        "businessHealthIndex",
+    setText("businessHealthIndex",
         `Composite Index: ${Math.round((stabilityScore+growthScore+profitabilityScore)/3)} / 100`
     );
 }
