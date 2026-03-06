@@ -239,9 +239,13 @@ function renderLifecycle(){
     container.innerHTML=`<strong>Lifecycle Classification:</strong> ${classification}`;
 }
 
-/* ================= INSIGHTS ================= */
+/* ================= INSIGHTS (FIXED) ================= */
 
 function renderInsights(){
+
+    const insightBox=document.getElementById("insightEngine");
+
+    if(!insightBox) return;
 
     const volatility=calculateVolatility();
     const margin=getMargin();
@@ -258,7 +262,36 @@ function renderInsights(){
     else if(growth>15)
         insight="Strong expansion phase detected.";
 
-    setText("insightEngine",insight);
+    insightBox.innerHTML=insight;
+}
+
+/* ================= CORE CHARTS ================= */
+
+function renderCoreCharts(){
+
+    if(!document.getElementById("revenueChart")) return;
+
+    revenueChart?.destroy();
+    profitChart?.destroy();
+    expenseChart?.destroy();
+
+    const labels=businessData.map(d=>d.date.toISOString().slice(0,7));
+
+    revenueChart=createChart("revenueChart","line",labels,businessData.map(d=>d.revenue),"Revenue");
+    profitChart=createChart("profitChart","line",labels,businessData.map(d=>d.profit),"Profit");
+    expenseChart=createChart("expenseChart","bar",labels,businessData.map(d=>d.expenses),"Expenses");
+}
+
+function createChart(id,type,labels,data,label){
+
+    const canvas=document.getElementById(id);
+    if(!canvas) return null;
+
+    return new Chart(canvas,{
+        type:type,
+        data:{labels,datasets:[{label,data}]},
+        options:{responsive:true,maintainAspectRatio:false}
+    });
 }
 
 /* ================= FORECAST ================= */
@@ -325,35 +358,24 @@ function renderPerformanceMatrix(){
     const growthScore=Math.min(Math.abs(growth)*5,100);
     const profitabilityScore=Math.min(margin*3,100);
 
+    const bar=document.getElementById("performanceBarChart");
+    const pie=document.getElementById("distributionPieChart");
+
+    if(!bar||!pie) return;
+
     performanceBarChart?.destroy();
     distributionPieChart?.destroy();
 
-    performanceBarChart=new Chart(
-        document.getElementById("performanceBarChart"),
-        {
-            type:"bar",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{
-                    data:[stabilityScore,growthScore,profitabilityScore]
-                }]
-            },
-            options:{scales:{y:{beginAtZero:true,max:100}}}
-        }
-    );
+    performanceBarChart=new Chart(bar,{
+        type:"bar",
+        data:{labels:["Stability","Growth","Profitability"],datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]},
+        options:{scales:{y:{beginAtZero:true,max:100}}}
+    });
 
-    distributionPieChart=new Chart(
-        document.getElementById("distributionPieChart"),
-        {
-            type:"doughnut",
-            data:{
-                labels:["Stability","Growth","Profitability"],
-                datasets:[{
-                    data:[stabilityScore,growthScore,profitabilityScore]
-                }]
-            }
-        }
-    );
+    distributionPieChart=new Chart(pie,{
+        type:"doughnut",
+        data:{labels:["Stability","Growth","Profitability"],datasets:[{data:[stabilityScore,growthScore,profitabilityScore]}]}
+    });
 
     setText("businessHealthIndex",
         `Composite Index: ${Math.round((stabilityScore+growthScore+profitabilityScore)/3)} / 100`
