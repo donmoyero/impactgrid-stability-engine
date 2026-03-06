@@ -387,38 +387,135 @@ volatility>30?"Risk elevated":"Risk manageable");
 }
 
 
-/* ================= AI CHAT ================= */
+/* ================= IMPACTGRID AI CHAT ================= */
 
 function askImpactGridAI(){
 
 const input=document.getElementById("aiChatInput");
 const output=document.getElementById("aiChatOutput");
 
-const q=input.value.toLowerCase();
+if(!input||!output) return;
 
-let response="Ask about profit, growth, risk or health.";
-
-if(q.includes("profit"))
-response="Your profit margin is "+getMargin().toFixed(1)+"%.";
-
-else if(q.includes("growth"))
-response="Revenue growth is "+calculateMonthlyGrowth().toFixed(1)+"%.";
-
-else if(q.includes("risk"))
-response="Risk level currently "+(calculateVolatility()>30?"elevated":"manageable")+".";
-
-else if(q.includes("health"))
-response="Estimated health score "+Math.round((100-calculateVolatility()+getMargin()*3)/2);
+const question=input.value.trim();
+if(question==="") return;
 
 output.innerHTML+=`
-<div class="ai-user">${input.value}</div>
-<div class="ai-response">${response}</div>
+<div class="ai-user">${question}</div>
+<div class="ai-response">ImpactGrid AI analysing financial data... <span id="aiLoading">0%</span></div>
 `;
 
 input.value="";
 
+output.scrollTop=output.scrollHeight;
+
+let progress=0;
+
+const loader=setInterval(()=>{
+
+progress+=10;
+
+const loading=document.getElementById("aiLoading");
+
+if(loading) loading.innerText=progress+"%";
+
+if(progress>=100){
+
+clearInterval(loader);
+
+generateAIResponse(question,output);
+
 }
 
+},80);
+
+}
+
+
+function generateAIResponse(question,output){
+
+const q=question.toLowerCase();
+
+let response="";
+
+if(businessData.length<3){
+
+response="ImpactGrid AI requires at least three months of financial data before meaningful analysis can be produced.";
+
+}
+
+else if(q.includes("hello")||q.includes("hi")){
+
+response="Hello. I am ImpactGrid AI, your financial stability analyst. You can ask about revenue trends, profitability, operational risk, growth performance or business health.";
+
+}
+
+else if(q.includes("profit")){
+
+response=`Current profit margin is ${getMargin().toFixed(1)}%. 
+Margins above 15% generally indicate strong operational efficiency, while margins below 10% may signal cost pressure.`;
+
+}
+
+else if(q.includes("growth")||q.includes("revenue")){
+
+response=`Revenue growth currently measures ${calculateMonthlyGrowth().toFixed(1)}%.
+Sustained growth above 10% typically reflects expanding market demand or improved sales performance.`;
+
+}
+
+else if(q.includes("risk")){
+
+const vol=calculateVolatility();
+
+response=`Operational risk assessment indicates ${vol>30?"elevated volatility":"stable revenue patterns"}.
+Revenue volatility currently measures ${vol.toFixed(1)}%.`;
+
+}
+
+else if(q.includes("forecast")){
+
+response="Forecast modelling projects future revenue trajectories based on current growth momentum. Sustained positive growth will strengthen future financial resilience.";
+
+}
+
+else if(q.includes("health")){
+
+const score=Math.round((100-calculateVolatility()+getMargin()*3+calculateMonthlyGrowth()*4)/3);
+
+response=`The composite business health index is approximately ${score}/100. 
+Scores above 70 generally reflect strong financial structure and operational stability.`;
+
+}
+
+else if(q.includes("advice")||q.includes("improve")){
+
+const margin=getMargin();
+const growth=calculateMonthlyGrowth();
+
+if(margin<10)
+response="Improving cost control may strengthen margins. Consider reviewing operational expenses and supplier pricing.";
+
+else if(growth<5)
+response="Revenue growth appears modest. Expanding marketing activity or customer acquisition strategies may improve growth momentum.";
+
+else
+response="Current financial structure appears balanced. Focus on maintaining revenue consistency and cost efficiency.";
+
+}
+
+else{
+
+response="ImpactGrid AI can analyse revenue growth, profit margins, risk exposure, forecasts and overall business health. Try asking about growth, profit, risk or financial advice.";
+
+}
+
+output.innerHTML+=`
+<div class="ai-response">${response}</div>
+`;
+
+output.scrollTop=output.scrollHeight;
+
+}
 
 /* ================= HELPERS ================= */
 
