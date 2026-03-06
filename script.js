@@ -17,8 +17,10 @@ let aiChatHistory = [];
 /* ================= INIT ================= */
 
 document.addEventListener("DOMContentLoaded", () => {
+
     bindGlobalFunctions();
     renderAIInsights();
+
 });
 
 
@@ -70,8 +72,10 @@ function updateAll() {
     renderAIInsights();
 
     if (businessData.length >= 3) {
+
         renderPerformanceMatrix();
         renderRiskAssessment();
+
     }
 
 }
@@ -298,6 +302,36 @@ if(margin<10)
 insight+=" Profit margin pressure detected.";
 
 setText("riskInsight",insight);
+
+}
+
+
+/* ================= AI CHAT ================= */
+
+function askImpactGridAI(){
+
+const input = document.getElementById("aiChatInput");
+const output = document.getElementById("aiChatOutput");
+
+if(!input || !output) return;
+
+const question = input.value.trim();
+
+if(question === "") return;
+
+output.innerHTML += `<div class="ai-user">${question}</div>`;
+
+input.value = "";
+
+const response = ImpactGridAI.analyze(
+    question,
+    businessData,
+    currentCurrency
+);
+
+output.innerHTML += `<div class="ai-response">${response}</div>`;
+
+output.scrollTop = output.scrollHeight;
 
 }
 
