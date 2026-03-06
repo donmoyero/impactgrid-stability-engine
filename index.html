@@ -70,6 +70,50 @@ border-radius:8px;
 font-size:14px;
 }
 
+/* ================= AI CHAT ================= */
+
+.ai-chat{
+margin-top:30px;
+border:1px solid #1e293b;
+border-radius:10px;
+padding:20px;
+background:#0f172a;
+}
+
+.ai-chat-output{
+height:200px;
+overflow-y:auto;
+border:1px solid #1e293b;
+padding:15px;
+border-radius:8px;
+margin-bottom:15px;
+font-size:14px;
+}
+
+.ai-user{
+color:#38bdf8;
+margin-bottom:8px;
+}
+
+.ai-response{
+color:#e2e8f0;
+margin-bottom:12px;
+}
+
+.ai-chat-input{
+display:flex;
+gap:10px;
+}
+
+.ai-chat-input input{
+flex:1;
+padding:10px;
+border-radius:6px;
+border:1px solid #1e293b;
+background:#020617;
+color:white;
+}
+
 </style>
 
 </head>
@@ -114,8 +158,6 @@ Performance Matrix
 <li onclick="showSection('risk', event)">
 Risk Assessment
 </li>
-
-<!-- ===== PHASE 3 ADDITION ===== -->
 
 <li onclick="showSection('ai', event)">
 ImpactGrid AI
@@ -271,7 +313,7 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 </section>
 
-<!-- ================= OPERATIONAL CHARTS ================= -->
+<!-- ================= CHARTS ================= -->
 
 <section id="charts" class="page-section">
 
@@ -303,27 +345,16 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 <h2>Forecast Horizons</h2>
 
-<div class="forecast-block">
 <canvas id="forecast6m"></canvas>
-</div>
-
-<div class="forecast-block">
 <canvas id="forecast1y"></canvas>
-</div>
-
-<div class="forecast-block">
 <canvas id="forecast3y"></canvas>
-</div>
-
-<div class="forecast-block">
 <canvas id="forecast5y"></canvas>
-</div>
 
 </section>
 
 </section>
 
-<!-- ================= PERFORMANCE MATRIX ================= -->
+<!-- ================= MATRIX ================= -->
 
 <section id="matrix" class="page-section">
 
@@ -345,11 +376,7 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 <div class="structured-block">
 <h3>Composite Business Health Index</h3>
-
-<!-- SAFE DEFAULT FIX -->
-
 <div id="businessHealthIndex">Awaiting analysis...</div>
-
 </div>
 
 </section>
@@ -388,7 +415,7 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 
 </section>
 
-<!-- ================= PHASE 3 ================= -->
+<!-- ================= AI ================= -->
 
 <section id="ai" class="page-section">
 
@@ -419,6 +446,21 @@ Enter at least 3 months of financial data to activate ImpactGrid Insights.
 <div class="structured-block">
 <h3>Risk Interpretation</h3>
 <div id="aiRisk"></div>
+</div>
+
+<!-- ===== AI CHAT ===== -->
+
+<div class="ai-chat">
+
+<h3>ImpactGrid AI Analyst</h3>
+
+<div id="aiChatOutput" class="ai-chat-output"></div>
+
+<div class="ai-chat-input">
+<input id="aiChatInput" placeholder="Ask ImpactGrid AI about your business...">
+<button class="btn-primary" onclick="askImpactGridAI()">Ask</button>
+</div>
+
 </div>
 
 </section>
