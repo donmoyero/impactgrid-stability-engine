@@ -435,6 +435,27 @@ generateAIResponse(question,output);
 function generateAIResponse(question,output){
 
 const q=question.toLowerCase();
+/* ================= AI PROJECTION DETECTION ================= */
+
+const projectionMatch=q.match(/\b(3|5|10)\b/);
+
+if(projectionMatch && businessData.length>=3){
+
+const years=parseInt(projectionMatch[1]);
+
+generateAIProjection(years);
+
+output.innerHTML+=`
+<div class="ai-response">
+Generating ${years}-year financial projection based on historical revenue growth...
+</div>
+`;
+
+output.scrollTop=output.scrollHeight;
+
+return;
+
+}
 
 let response="";
 
@@ -601,5 +622,93 @@ window.setCurrency=setCurrency;
 window.showSection=showSection;
 window.logout=logout;
 window.askImpactGridAI=askImpactGridAI;
+
+}
+
+/* ================= AI PROJECTION ENGINE ================= */
+
+function generateAIProjection(years){
+
+if(businessData.length<3) return;
+
+const canvas=document.getElementById("aiForecastChart");
+const explanation=document.getElementById("aiForecastExplanation");
+
+if(!canvas) return;
+
+/* destroy old chart */
+
+if(aiForecastChart){
+aiForecastChart.destroy();
+}
+
+/* calculate CAGR */
+
+const first=businessData[0];
+const last=businessData[businessData.length-1];
+
+const monthsDiff=
+(last.date.getFullYear()-first.date.getFullYear())*12+
+(last.date.getMonth()-first.date.getMonth());
+
+const cagr=Math.pow(last.revenue/first.revenue,1/monthsDiff)-1;
+
+/* projection */
+
+let revenue=last.revenue;
+
+let labels=[];
+let data=[];
+
+for(let i=1;i<=years;i++){
+
+revenue=revenue*Math.pow(1+cagr,12);
+
+labels.push("Year "+i);
+data.push(Math.round(revenue));
+
+}
+
+/* render chart */
+
+aiForecastChart=new Chart(canvas,{
+
+type:"line",
+
+data:{
+labels,
+datasets:[{
+label:"AI Revenue Projection",
+data,
+tension:0.3
+}]
+},
+
+options:{
+responsive:true,
+maintainAspectRatio:false
+}
+
+});
+
+/* AI explanation */
+
+if(explanation){
+
+explanation.innerHTML=`
+
+<strong>ImpactGrid AI Projection Analysis</strong><br><br>
+
+ImpactGrid AI analysed your historical revenue trajectory and calculated a compound growth rate of ${(cagr*100).toFixed(2)}% per month.
+
+Using this growth rate, revenue was projected forward for a ${years}-year horizon.
+
+The model assumes operational conditions remain consistent and that historical growth patterns continue.
+
+Projected revenue at the end of ${years} years is approximately <strong>${formatCurrency(data[data.length-1])}</strong>.
+
+`;
+
+}
 
 }
