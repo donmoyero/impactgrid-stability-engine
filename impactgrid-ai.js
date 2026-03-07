@@ -1,422 +1,531 @@
 /* =====================================================
-   IMPACTGRID AI ENGINE
+   IMPACTGRID AI ENGINE — UPGRADED v2.0
    Financial Intelligence & Consultant Engine
+
+   Upgrades applied:
+   ✅ Real Claude API integration (intelligent answers)
+   ✅ Conversation memory — follows up naturally
+   ✅ Financial context passed into every prompt
+   ✅ Anomaly detection — flags unusual months
+   ✅ Improved forecast using average monthly growth
+   ✅ Expanded intent detection (natural language)
+   ✅ Suggested follow-up questions after every answer
+   ✅ Typing indicator while AI thinks
+   ✅ Fallback to local engine if API unavailable
 ===================================================== */
 
 const ImpactGridAI = {
 
-analyze(question,data,currency){
+  /* =====================================================
+     MAIN ENTRY POINT
+     Called by askImpactGridAI() in script.js
+  ===================================================== */
 
-const q = question.toLowerCase().trim();
+  async analyze(question, data, currency, history = []) {
 
-/* ===== FORECAST DETECTION ===== */
+    /* Always try Claude API first for intelligent answers */
+    try {
+      const response = await this.callClaudeAPI(question, data, currency, history);
+      if (response) return response;
+    } catch (e) {
+      console.warn("ImpactGrid AI: Claude API unavailable, falling back to local engine.", e);
+    }
 
-if(this.isForecastQuestion(q))
-return this.forecastEngine(q,data,currency);
+    /* Fallback: local keyword engine */
+    return this.localEngine(question, data, currency);
 
-/* ===== RISK ===== */
+  },
 
-if(this.isRiskQuestion(q))
-return this.riskEngine(data,currency);
 
-/* ===== PERFORMANCE ===== */
+  /* =====================================================
+     CLAUDE API INTEGRATION
+  ===================================================== */
 
-if(this.isPerformanceQuestion(q))
-return this.performanceEngine(data,currency);
+  async callClaudeAPI(question, data, currency, history) {
+
+    if (!data || data.length === 0) {
+      return this.noDataMessage();
+    }
+
+    const systemPrompt = `You are ImpactGrid AI, a professional financial consultant embedded inside a business intelligence dashboard called ImpactGrid.
 
-/* ===== STRATEGY ===== */
+Your role is to help small and medium-sized business owners understand their financial data, identify risks, and make smarter decisions.
 
-if(this.isStrategyQuestion(q))
-return this.strategyEngine(data,currency);
+Tone: confident, clear, concise. Use British English. Format responses with short paragraphs and bold key figures. Never use overly complex jargon. Always ground your advice in the actual data provided.
 
-/* ===== CHARTS ===== */
+Currency in use: ${currency}
 
-if(this.isChartQuestion(q))
-return this.chartExplanation(data,currency);
+Rules:
+- Always refer to specific numbers from the data when answering
+- Keep responses under 250 words unless a detailed breakdown is requested
+- End every response with 2-3 suggested follow-up questions formatted exactly like this:
+  SUGGESTIONS: question one | question two | question three`;
 
-/* ===== DEFAULT ===== */
+    const dataContext = this.buildDataSummary(data, currency);
+    const anomalies = this.detectAnomalies(data);
+    const anomalyNote = anomalies.length > 0
+      ? `\n\nAnomalies detected: ${anomalies.map(a => `${a.date.toISOString().slice(0,7)} had unusual revenue of ${a.revenue}`).join(", ")}`
+      : "";
 
-return this.generalAdvice();
+    /* Build message history (last 8 messages for context) */
+    const messages = history.slice(-8).map(m => ({
+      role: m.role === "ai" ? "assistant" : "user",
+      content: m.content
+    }));
 
-},
+    /* Add current question with full data context */
+    messages.push({
+      role: "user",
+      content: `${dataContext}${anomalyNote}\n\nUser question: ${question}`
+    });
 
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
 
-/* =====================================================
-   INTENT DETECTION
-===================================================== */
+    if (!res.ok) {
+      console.warn("Claude API error:", res.status);
+      return null;
+    }
 
-isForecastQuestion(q){
+    const result = await res.json();
+    const rawText = result?.content?.[0]?.text || null;
 
-return (
-q === "3" ||
-q === "5" ||
-q === "10" ||
-q.includes("forecast") ||
-q.includes("projection") ||
-q.includes("future") ||
-q.includes("year")
-);
+    if (!rawText) return null;
 
-},
+    /* Parse out suggestions if present */
+    return this.parseAndFormatResponse(rawText, data, currency);
 
-isRiskQuestion(q){
+  },
 
-return (
-q.includes("risk") ||
-q.includes("stable") ||
-q.includes("volatility")
-);
 
-},
+  /* =====================================================
+     RESPONSE PARSER
+     Extracts suggestions from Claude's response and
+     formats them as clickable chips
+  ===================================================== */
 
-isPerformanceQuestion(q){
+  parseAndFormatResponse(rawText, data, currency) {
 
-return (
-q.includes("performance") ||
-q.includes("health") ||
-q.includes("profit") ||
-q.includes("margin")
-);
+    let mainText = rawText;
+    let suggestionsHTML = "";
 
-},
+    const suggMatch = rawText.match(/SUGGESTIONS:\s*(.+)/i);
 
-isStrategyQuestion(q){
+    if (suggMatch) {
+      mainText = rawText.replace(/SUGGESTIONS:.*/is, "").trim();
+      const suggestions = suggMatch[1].split("|").map(s => s.trim()).filter(Boolean);
 
-return (
-q.includes("strategy") ||
-q.includes("improve") ||
-q.includes("grow") ||
-q.includes("increase")
-);
+      suggestionsHTML = `
+        <div class="ai-suggestions">
+          ${suggestions.map(s =>
+            `<button class="ai-suggestion-chip" onclick="fillAIChat('${s.replace(/'/g, "\\'")}')">${s}</button>`
+          ).join("")}
+        </div>`;
+    }
 
-},
+    /* Format the main text — bold numbers and key terms */
+    const formatted = mainText
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\n\n/g, "</p><p>")
+      .replace(/\n/g, "<br>");
 
-isChartQuestion(q){
+    /* Trigger forecast chart if question is about projections */
+    const lowerQ = mainText.toLowerCase();
+    const forecastMatch = lowerQ.match(/(\d+)\s*year/);
+    if (forecastMatch && typeof generateAIProjection === "function") {
+      try { generateAIProjection(parseInt(forecastMatch[1])); } catch(e) {}
+    }
 
-return (
-q.includes("chart") ||
-q.includes("analysis") ||
-q.includes("explain")
-);
+    return `<p>${formatted}</p>${suggestionsHTML}`;
 
-},
+  },
 
 
-/* =====================================================
-   FORECAST ENGINE
-===================================================== */
+  /* =====================================================
+     DATA SUMMARY BUILDER
+     Converts businessData into a readable string for the AI
+  ===================================================== */
 
-forecastEngine(question,data,currency){
+  buildDataSummary(data, currency) {
 
-if(data.length < 3){
-return "ImpactGrid AI requires at least 3 months of financial data before projections can be generated.";
-}
+    if (!data || data.length === 0) return "No financial data has been entered yet.";
 
-/* detect years */
+    const totalRevenue = this.sum(data, "revenue");
+    const totalProfit = this.sum(data, "profit");
+    const totalExpenses = this.sum(data, "expenses");
+    const margin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+    const growth = this.calculateGrowth(data);
+    const volatility = this.calculateVolatility(data);
+    const avgMonthlyGrowth = this.calculateAvgMonthlyGrowth(data);
 
-let years = 3;
+    const monthlyBreakdown = data.map(d =>
+      `  ${d.date.toISOString().slice(0, 7)}: revenue ${d.revenue}, expenses ${d.expenses}, profit ${d.profit}`
+    ).join("\n");
 
-if(question.includes("5") || question === "5") years = 5;
-if(question.includes("10") || question === "10") years = 10;
+    return `BUSINESS FINANCIAL DATA (${currency}):
+Monthly breakdown:
+${monthlyBreakdown}
 
-/* trigger forecast chart */
+Summary:
+- Total Revenue: ${totalRevenue}
+- Total Expenses: ${totalExpenses}
+- Total Profit: ${totalProfit}
+- Profit Margin: ${margin}%
+- Overall Revenue Growth: ${growth.toFixed(1)}%
+- Average Monthly Growth Rate: ${(avgMonthlyGrowth * 100).toFixed(2)}%
+- Revenue Volatility: ${volatility.toFixed(1)}%
+- Months of data: ${data.length}`;
 
-try{
+  },
 
-if(typeof generateAIProjection === "function"){
-generateAIProjection(years);
-}
 
-}catch(e){
+  /* =====================================================
+     ANOMALY DETECTION ENGINE
+     Flags months where revenue deviates > 1.5 std devs
+  ===================================================== */
 
-console.warn("Forecast engine not ready",e);
+  detectAnomalies(data) {
 
-}
+    if (!data || data.length < 3) return [];
 
-/* calculate growth */
+    const revenues = data.map(d => d.revenue);
+    const mean = revenues.reduce((a, b) => a + b, 0) / revenues.length;
+    const variance = revenues.reduce((a, b) => a + (b - mean) ** 2, 0) / revenues.length;
+    const std = Math.sqrt(variance);
 
-const first = data[0];
-const last = data[data.length-1];
+    return data.filter(d => Math.abs(d.revenue - mean) > 1.5 * std);
 
-let months =
-(last.date.getFullYear()-first.date.getFullYear())*12 +
-(last.date.getMonth()-first.date.getMonth());
+  },
 
-if(months <= 0) months = 1;
 
-const cagr = Math.pow(last.revenue/first.revenue,1/months)-1;
+  /* =====================================================
+     IMPROVED FORECAST ENGINE
+     Uses average monthly growth rate across ALL months
+     (more stable than first-vs-last CAGR)
+  ===================================================== */
 
-const projected = last.revenue*Math.pow(1+cagr,years*12);
+  calculateAvgMonthlyGrowth(data) {
 
-return `
+    if (!data || data.length < 2) return 0;
 
-ImpactGrid AI Projection Analysis
+    const growthRates = [];
 
-Based on historical performance your revenue has been growing approximately **${(cagr*100).toFixed(2)}% per month**.
+    for (let i = 1; i < data.length; i++) {
+      if (data[i - 1].revenue > 0) {
+        growthRates.push((data[i].revenue - data[i - 1].revenue) / data[i - 1].revenue);
+      }
+    }
 
-If the current trend continues, projected revenue after **${years} years** could reach:
+    if (growthRates.length === 0) return 0;
 
-<strong>${this.formatCurrency(projected,currency)}</strong>
+    return growthRates.reduce((a, b) => a + b, 0) / growthRates.length;
 
-Consultant Insight
+  },
 
-Growth appears sustainable provided operational costs remain controlled and revenue volatility stays stable.
 
-The forecast chart has been generated below.
+  /* =====================================================
+     LOCAL FALLBACK ENGINE
+     Used when Claude API is unavailable
+  ===================================================== */
 
-`;
+  localEngine(question, data, currency) {
 
-},
+    const q = question.toLowerCase().trim();
 
+    if (this.isForecastQuestion(q)) return this.forecastEngine(q, data, currency);
+    if (this.isRiskQuestion(q))     return this.riskEngine(data, currency);
+    if (this.isPerformanceQuestion(q)) return this.performanceEngine(data, currency);
+    if (this.isStrategyQuestion(q)) return this.strategyEngine(data, currency);
+    if (this.isChartQuestion(q))    return this.chartExplanation(data, currency);
+    if (this.isAnomalyQuestion(q))  return this.anomalyEngine(data, currency);
 
-/* =====================================================
-   PERFORMANCE ENGINE
-===================================================== */
+    return this.generalAdvice();
 
-performanceEngine(data,currency){
+  },
 
-const revenue=this.sum(data,"revenue");
-const profit=this.sum(data,"profit");
 
-const margin=revenue>0?(profit/revenue)*100:0;
+  /* =====================================================
+     INTENT DETECTION — expanded keyword lists
+  ===================================================== */
 
-let insight="";
+  isForecastQuestion(q) {
+    const words = ["forecast","projection","project","future","year","next","predict","grow to","earn","expect","will i","how much will","outlook","trajectory"];
+    return words.some(w => q.includes(w)) || /^\d+$/.test(q.trim());
+  },
 
-if(margin>20)
-insight="Your business demonstrates strong profitability and efficient operations.";
+  isRiskQuestion(q) {
+    const words = ["risk","stable","stability","volatility","volatile","danger","safe","uncertain","consistent"];
+    return words.some(w => q.includes(w));
+  },
 
-else if(margin>10)
-insight="Your company shows moderate profitability with opportunities to optimise margins.";
+  isPerformanceQuestion(q) {
+    const words = ["performance","health","profit","margin","how am i","how are we","doing well","revenue","income","results"];
+    return words.some(w => q.includes(w));
+  },
 
-else
-insight="Profit margins appear under pressure which suggests operational cost challenges.";
+  isStrategyQuestion(q) {
+    const words = ["strategy","improve","grow","increase","advice","recommend","should i","what should","help me","optimize","optimise","scale","tips"];
+    return words.some(w => q.includes(w));
+  },
 
-return `
+  isChartQuestion(q) {
+    const words = ["chart","analysis","analyse","analyze","explain","what does","tell me about","breakdown","summary","overview"];
+    return words.some(w => q.includes(w));
+  },
 
-ImpactGrid AI Performance Review
+  isAnomalyQuestion(q) {
+    const words = ["anomaly","unusual","spike","drop","weird","strange","outlier","different","stand out"];
+    return words.some(w => q.includes(w));
+  },
 
-Total Revenue  
-${this.formatCurrency(revenue,currency)}
 
-Total Profit  
-${this.formatCurrency(profit,currency)}
+  /* =====================================================
+     LOCAL FORECAST ENGINE (fallback)
+  ===================================================== */
 
-Average Profit Margin  
-${margin.toFixed(2)}%
+  forecastEngine(question, data, currency) {
 
-Consultant Assessment
+    if (data.length < 3) {
+      return "ImpactGrid AI requires at least 3 months of financial data before projections can be generated.";
+    }
 
-${insight}
+    let years = 3;
+    if (question.includes("5")) years = 5;
+    if (question.includes("10")) years = 10;
 
-Strategic Focus
+    try {
+      if (typeof generateAIProjection === "function") generateAIProjection(years);
+    } catch(e) {
+      console.warn("Forecast chart not ready", e);
+    }
 
-Maintaining revenue growth while improving cost discipline will strengthen long-term financial stability.
+    const avgGrowth = this.calculateAvgMonthlyGrowth(data);
+    const last = data[data.length - 1];
+    const projected = last.revenue * Math.pow(1 + avgGrowth, years * 12);
+    const projectedClamped = Math.max(0, projected);
 
-`;
+    return `<p><strong>ImpactGrid AI — ${years}-Year Projection</strong></p>
+<p>Based on your average monthly growth rate of <strong>${(avgGrowth * 100).toFixed(2)}%</strong>, projected revenue after <strong>${years} years</strong> could reach:</p>
+<p><strong>${this.formatCurrency(projectedClamped, currency)}</strong></p>
+<p>This forecast has been generated on the chart below. Growth assumes current trends continue — external market shifts are not factored in.</p>
+${this.suggestionChips(["10 year forecast","How risky is my business?","How can I improve my margin?"])}`;
 
-},
+  },
 
 
-/* =====================================================
-   RISK ENGINE
-===================================================== */
+  /* =====================================================
+     LOCAL PERFORMANCE ENGINE (fallback)
+  ===================================================== */
 
-riskEngine(data,currency){
+  performanceEngine(data, currency) {
 
-const volatility=this.calculateVolatility(data);
+    const revenue = this.sum(data, "revenue");
+    const profit = this.sum(data, "profit");
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-let level="";
-let explanation="";
+    let insight = margin > 20
+      ? "Your business demonstrates strong profitability and efficient operations."
+      : margin > 10
+        ? "Your business shows moderate profitability with room to optimise margins."
+        : "Profit margins are under pressure — operational costs may need reviewing.";
 
-if(volatility<15){
+    return `<p><strong>ImpactGrid AI — Performance Review</strong></p>
+<p>Total Revenue: <strong>${this.formatCurrency(revenue, currency)}</strong><br>
+Total Profit: <strong>${this.formatCurrency(profit, currency)}</strong><br>
+Profit Margin: <strong>${margin.toFixed(2)}%</strong></p>
+<p>${insight}</p>
+${this.suggestionChips(["3 year forecast","How can I grow?","What are my risks?"])}`;
 
-level="Low";
-explanation="Revenue behaviour appears stable and predictable.";
+  },
 
-}
 
-else if(volatility<30){
+  /* =====================================================
+     LOCAL RISK ENGINE (fallback)
+  ===================================================== */
 
-level="Moderate";
-explanation="Revenue fluctuations exist but remain manageable.";
+  riskEngine(data, currency) {
 
-}
+    const volatility = this.calculateVolatility(data);
+    const level = volatility < 15 ? "Low" : volatility < 30 ? "Moderate" : "Elevated";
+    const explanation = volatility < 15
+      ? "Revenue behaviour appears stable and predictable."
+      : volatility < 30
+        ? "Revenue fluctuations exist but remain manageable."
+        : "High volatility may be increasing your operational risk.";
 
-else{
+    return `<p><strong>ImpactGrid AI — Risk Assessment</strong></p>
+<p>Revenue Volatility: <strong>${volatility.toFixed(2)}%</strong><br>
+Risk Level: <strong>${level}</strong></p>
+<p>${explanation}</p>
+<p>Focus on stabilising recurring revenue streams to reduce dependence on unpredictable income sources.</p>
+${this.suggestionChips(["How can I reduce risk?","What's my profit margin?","5 year forecast"])}`;
 
-level="Elevated";
-explanation="High revenue volatility may increase operational risk.";
+  },
 
-}
 
-return `
+  /* =====================================================
+     LOCAL STRATEGY ENGINE (fallback)
+  ===================================================== */
 
-ImpactGrid AI Risk Assessment
+  strategyEngine(data, currency) {
 
-Revenue Volatility  
-${volatility.toFixed(2)}%
+    const margin = this.getMargin(data);
+    const volatility = this.calculateVolatility(data);
+    const growth = this.calculateGrowth(data);
 
-Risk Level  
-${level}
+    let bullets = [];
 
-Consultant Insight
+    if (margin < 10)    bullets.push("Review your cost structure — margins below 10% leave little room for error.");
+    if (volatility > 30) bullets.push("Introduce more predictable recurring revenue to reduce income volatility.");
+    if (growth < 0)     bullets.push("Revenue is declining — identify your top performing months and what drove them.");
+    if (margin > 20)    bullets.push("Strong margins — consider reinvesting profits into growth initiatives.");
+    if (bullets.length === 0) bullets.push("Continue scaling while maintaining financial discipline and cost control.");
 
-${explanation}
+    return `<p><strong>ImpactGrid AI — Strategic Recommendations</strong></p>
+<p>${bullets.map(b => `• ${b}`).join("<br>")}</p>
+<p>Sustainable growth comes from balanced profitability, revenue stability, and operational efficiency.</p>
+${this.suggestionChips(["What are my risks?","Show my performance","3 year forecast"])}`;
 
-Recommendation
+  },
 
-Focus on stabilising recurring revenue streams and reducing dependence on unpredictable income sources.
 
-`;
+  /* =====================================================
+     CHART ANALYSIS (fallback)
+  ===================================================== */
 
-},
+  chartExplanation(data, currency) {
 
+    if (data.length < 3) return "ImpactGrid AI requires additional records to analyse chart behaviour.";
 
-/* =====================================================
-   STRATEGY ENGINE
-===================================================== */
+    const growth = this.calculateGrowth(data);
+    const volatility = this.calculateVolatility(data);
+    const trend = growth > 10 ? "strong upward" : growth > 0 ? "gradual upward" : "declining";
 
-strategyEngine(data,currency){
+    return `<p><strong>ImpactGrid AI — Chart Analysis</strong></p>
+<p>Your charts show a <strong>${trend} trend</strong> with <strong>${growth.toFixed(1)}%</strong> overall revenue growth and <strong>${volatility.toFixed(1)}%</strong> volatility.</p>
+<p>Consistent revenue growth paired with controlled expenses indicates a healthy financial trajectory. Spikes in the expense chart may signal one-off costs worth investigating.</p>
+${this.suggestionChips(["Explain my risks","3 year forecast","Strategic advice"])}`;
 
-const margin=this.getMargin(data);
-const volatility=this.calculateVolatility(data);
+  },
 
-let strategy="";
 
-if(margin<10)
-strategy+="• Review operational expenses and cost structure.\n";
+  /* =====================================================
+     ANOMALY ENGINE
+  ===================================================== */
 
-if(volatility>30)
-strategy+="• Introduce more predictable revenue streams.\n";
+  anomalyEngine(data, currency) {
 
-if(margin>20)
-strategy+="• Reinvest profits into growth initiatives.\n";
+    const anomalies = this.detectAnomalies(data);
 
-if(strategy==="")
-strategy="• Continue scaling operations while maintaining financial stability.";
+    if (anomalies.length === 0) {
+      return `<p><strong>ImpactGrid AI — Anomaly Check</strong></p>
+<p>No significant anomalies detected. Your revenue has been consistent across all recorded months.</p>
+${this.suggestionChips(["Show my performance","What are my risks?","3 year forecast"])}`;
+    }
 
-return `
+    const list = anomalies.map(a =>
+      `• <strong>${a.date.toISOString().slice(0,7)}</strong> — Revenue: ${this.formatCurrency(a.revenue, currency)}`
+    ).join("<br>");
 
-ImpactGrid AI Strategic Recommendations
+    return `<p><strong>ImpactGrid AI — Anomaly Detection</strong></p>
+<p>The following months show unusual revenue patterns:</p>
+<p>${list}</p>
+<p>Investigate what caused these outliers — they could represent exceptional wins to replicate or problems to address.</p>
+${this.suggestionChips(["Why might this have happened?","How do I stabilise revenue?","Show my risks"])}`;
 
-${strategy}
+  },
 
-Long-Term Advisory
 
-Sustainable SME growth is achieved through balanced profitability, revenue stability and operational efficiency.
+  /* =====================================================
+     GENERAL ADVICE / HELP
+  ===================================================== */
 
-`;
+  generalAdvice() {
 
-},
+    return `<p><strong>ImpactGrid AI — How can I help?</strong></p>
+<p>Try asking me things like:</p>
+<p>
+• "3 year projection"<br>
+• "5 year forecast"<br>
+• "How risky is my business?"<br>
+• "What's my profit margin?"<br>
+• "How can I improve profitability?"<br>
+• "Explain my charts"<br>
+• "Are there any anomalies in my data?"<br>
+• "Give me strategic advice"
+</p>
+${this.suggestionChips(["3 year forecast","How risky is my business?","How can I improve?"])}`;
 
+  },
 
-/* =====================================================
-   CHART ANALYSIS
-===================================================== */
 
-chartExplanation(data,currency){
+  /* =====================================================
+     NO DATA MESSAGE
+  ===================================================== */
 
-if(data.length<3)
-return "ImpactGrid AI requires additional financial records to analyse chart behaviour.";
+  noDataMessage() {
+    return `<p><strong>ImpactGrid AI</strong></p>
+<p>Please enter at least one month of financial data before asking questions. Once you've added your revenue and expenses, I can analyse your business performance, forecast growth, and identify risks.</p>`;
+  },
 
-const growth=this.calculateGrowth(data);
-const volatility=this.calculateVolatility(data);
 
-return `
+  /* =====================================================
+     SUGGESTION CHIPS BUILDER
+  ===================================================== */
 
-ImpactGrid Chart Analysis
+  suggestionChips(suggestions) {
+    return `<div class="ai-suggestions">
+      ${suggestions.map(s =>
+        `<button class="ai-suggestion-chip" onclick="fillAIChat('${s.replace(/'/g, "\\'")}')">${s}</button>`
+      ).join("")}
+    </div>`;
+  },
 
-Revenue Growth  
-${growth.toFixed(2)}%
 
-Revenue Volatility  
-${volatility.toFixed(2)}%
+  /* =====================================================
+     SHARED HELPERS
+  ===================================================== */
 
-Consultant Insight
+  sum(data, key) {
+    return data.reduce((a, b) => a + (b[key] || 0), 0);
+  },
 
-These charts illustrate how revenue, expenses and profit evolve over time.
+  calculateVolatility(data) {
+    if (!data || data.length < 2) return 0;
+    const revenues = data.map(d => d.revenue);
+    const mean = revenues.reduce((a, b) => a + b, 0) / revenues.length;
+    const variance = revenues.reduce((a, b) => a + (b - mean) ** 2, 0) / revenues.length;
+    return mean > 0 ? (Math.sqrt(variance) / mean) * 100 : 0;
+  },
 
-Consistent revenue growth combined with controlled expense levels indicates a healthy financial trajectory.
+  calculateGrowth(data) {
+    if (!data || data.length < 2) return 0;
+    const first = data[0].revenue;
+    const last = data[data.length - 1].revenue;
+    return first > 0 ? ((last - first) / first) * 100 : 0;
+  },
 
-Monitoring volatility alongside profit margins helps anticipate operational risks.
+  getMargin(data) {
+    const revenue = this.sum(data, "revenue");
+    const profit = this.sum(data, "profit");
+    return revenue > 0 ? (profit / revenue) * 100 : 0;
+  },
 
-`;
-
-},
-
-
-/* =====================================================
-   GENERAL ADVICE
-===================================================== */
-
-generalAdvice(){
-
-return `
-
-ImpactGrid AI Consultant
-
-You can ask questions like:
-
-• "3 year projection"  
-• "5 year forecast"  
-• "10 year forecast"  
-• "Explain my charts"  
-• "How risky is my business?"  
-• "How can I improve profitability?"  
-• "Give strategic advice"
-
-`;
-
-},
-
-
-/* =====================================================
-   HELPERS
-===================================================== */
-
-sum(data,key){
-return data.reduce((a,b)=>a+(b[key]||0),0);
-},
-
-calculateVolatility(data){
-
-const revenues=data.map(d=>d.revenue);
-
-const mean=revenues.reduce((a,b)=>a+b)/revenues.length;
-
-const variance=revenues.reduce((a,b)=>a+(b-mean)**2,0)/revenues.length;
-
-return (Math.sqrt(variance)/mean)*100;
-
-},
-
-calculateGrowth(data){
-
-if(data.length<2) return 0;
-
-const first=data[0].revenue;
-const last=data[data.length-1].revenue;
-
-return ((last-first)/first)*100;
-
-},
-
-getMargin(data){
-
-const revenue=this.sum(data,"revenue");
-const profit=this.sum(data,"profit");
-
-return revenue>0?(profit/revenue)*100:0;
-
-},
-
-formatCurrency(value,currency){
-
-return new Intl.NumberFormat(undefined,{
-style:"currency",
-currency:currency
-}).format(value);
-
-}
+  formatCurrency(value, currency) {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency
+    }).format(value);
+  }
 
 };
