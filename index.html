@@ -174,29 +174,58 @@
 
         <h2>Monthly Financial Data Entry</h2>
 
-        <div class="grid">
+        <!-- 3-month guidance banner -->
+        <div id="entryGuidance" style="display:flex;align-items:flex-start;gap:12px;padding:13px 16px;margin-bottom:20px;background:rgba(200,169,110,0.07);border:1px solid rgba(200,169,110,0.25);border-left:3px solid var(--gold);border-radius:8px;">
+          <span style="font-size:16px;flex-shrink:0;margin-top:1px;">&#128203;</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--gold-light);margin-bottom:3px;font-family:'Syne',sans-serif;">Minimum 3 months required to activate ImpactGrid AI</div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.6;font-family:'JetBrains Mono',monospace;">Enter at least 3 separate months of revenue &amp; expenses to unlock forecasts, risk analysis, performance scoring, and AI insights. Each month can only be entered once.</div>
+          </div>
+        </div>
 
+        <!-- Manual entry -->
+        <div class="grid">
           <div>
             <label>Reporting Month</label>
-            <input type="month" id="month">
+            <input type="month" id="month" onchange="checkDuplicate()">
+            <div id="duplicateWarning" style="display:none;font-size:11px;color:var(--danger);font-family:'JetBrains Mono',monospace;margin-top:5px;">&#9888; This month has already been entered. Edit the existing record below.</div>
           </div>
-
           <div>
             <label>Total Revenue</label>
-            <input type="number" id="revenue" placeholder="0.00">
+            <input type="number" id="revenue" placeholder="0.00" min="0">
           </div>
-
           <div>
             <label>Total Expenses</label>
-            <input type="number" id="expenses" placeholder="0.00">
+            <input type="number" id="expenses" placeholder="0.00" min="0">
           </div>
-
           <div style="display:flex;align-items:flex-end;">
-            <button type="button" class="btn-primary" onclick="addData()" style="width:100%;">
-              + Add Record
-            </button>
+            <button type="button" class="btn-primary" onclick="addData()" style="width:100%;">+ Add Record</button>
           </div>
+        </div>
 
+        <!-- Import divider -->
+        <div style="display:flex;align-items:center;gap:14px;margin:22px 0 18px;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);letter-spacing:0.1em;white-space:nowrap;">OR IMPORT FROM FILE</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+
+        <!-- File import -->
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;">
+          <label for="fileImport" style="display:inline-flex;align-items:center;gap:9px;padding:10px 20px;background:var(--bg-mid);border:1px dashed var(--border-mid);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em;transition:border-color 0.2s,color 0.2s;">
+            <span style="font-size:16px;">&#128194;</span> Choose Excel / CSV / Word file
+          </label>
+          <input type="file" id="fileImport" accept=".csv,.xlsx,.xls,.docx,.doc" style="display:none;" onchange="handleFileImport(event)">
+          <span id="importStatus" style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);"></span>
+        </div>
+
+        <!-- Format hint -->
+        <div style="margin-top:12px;padding:10px 14px;background:var(--bg-mid);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;line-height:1.7;">
+          <strong style="color:var(--text-secondary);">Excel / CSV columns:</strong>
+          &nbsp;<span style="color:var(--gold-light);">Month</span> | <span style="color:var(--gold-light);">Revenue</span> | <span style="color:var(--gold-light);">Expenses</span>
+          &nbsp;&middot;&nbsp; e.g. <span style="color:var(--success);">2024-01, 12500, 8200</span><br>
+          <strong style="color:var(--text-secondary);">Word (.docx):</strong>
+          &nbsp;Table with Month / Revenue / Expenses columns, or one entry per line.
         </div>
 
       </section>
@@ -213,11 +242,12 @@
               <th>Revenue</th>
               <th>Expenses</th>
               <th>Profit / Loss</th>
+              <th style="width:80px;text-align:center;">Edit</th>
             </tr>
           </thead>
           <tbody id="recordsTableBody">
             <tr>
-              <td colspan="4" style="text-align:center;color:var(--text-muted);padding:28px;font-family:'JetBrains Mono',monospace;font-size:12px;">
+              <td colspan="5" style="text-align:center;color:var(--text-muted);padding:28px;font-family:'JetBrains Mono',monospace;font-size:12px;">
                 No records yet — add your first month above
               </td>
             </tr>
@@ -225,10 +255,42 @@
         </table>
 
         <div class="progress-box" id="dataProgress">
-          0 / 3 months entered &nbsp;·&nbsp; Add 3 months to activate ImpactGrid Insights
+          0 / 3 months entered &nbsp;&middot;&nbsp; Add 3 months to activate ImpactGrid Insights
         </div>
 
       </section>
+
+      <!-- Edit Record Modal -->
+      <div id="editModal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(6,8,15,0.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+        <div style="background:var(--bg-surface,#0e1220);border:1px solid var(--border-mid,#222b42);border-radius:16px;padding:32px 30px;width:100%;max-width:420px;margin:20px;box-shadow:0 24px 60px rgba(0,0,0,0.7);">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+            <div>
+              <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--gold,#c8a96e);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">Edit Record</div>
+              <div id="editModalTitle" style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text,#edf0f7);"></div>
+            </div>
+            <button onclick="closeEditModal()" style="background:var(--bg-mid,#121729);border:1px solid var(--border,#1a2035);border-radius:8px;color:var(--text-muted,#3d4e68);font-size:16px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+          </div>
+
+          <input type="hidden" id="editIndex">
+
+          <div style="margin-bottom:16px;">
+            <label style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted,#3d4e68);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Total Revenue</label>
+            <input type="number" id="editRevenue" min="0" style="width:100%;padding:11px 14px;background:var(--bg-mid,#121729);border:1px solid var(--border-mid,#222b42);border-radius:8px;color:var(--text,#edf0f7);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box;">
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted,#3d4e68);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Total Expenses</label>
+            <input type="number" id="editExpenses" min="0" style="width:100%;padding:11px 14px;background:var(--bg-mid,#121729);border:1px solid var(--border-mid,#222b42);border-radius:8px;color:var(--text,#edf0f7);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;box-sizing:border-box;">
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button onclick="saveEdit()" style="flex:1;padding:12px;background:linear-gradient(135deg,#b8923e,#e2c98a);color:#06080f;font-weight:700;font-size:13px;border:none;border-radius:8px;cursor:pointer;font-family:'Manrope',sans-serif;">Save Changes</button>
+            <button onclick="deleteRecord()" style="padding:12px 18px;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:#ff4d6d;font-size:12px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;">Delete</button>
+          </div>
+
+        </div>
+      </div>
 
       <!-- AI Insights -->
       <section class="card">
@@ -475,6 +537,7 @@
 ================================================ -->
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="impactgrid-ai.js"></script>
 <script src="script.js"></script>
 
