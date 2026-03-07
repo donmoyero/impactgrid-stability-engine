@@ -19,6 +19,19 @@ let lastAIInsightText = "";
 document.addEventListener("DOMContentLoaded", function() {
   bindGlobalFunctions();
   renderAIInsights();
+
+  // Close edit modal on Escape key
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") closeEditModal();
+  });
+
+  // Close modal on backdrop click
+  var modal = document.getElementById("editModal");
+  if (modal) {
+    modal.addEventListener("click", function(e) {
+      if (e.target === modal) closeEditModal();
+    });
+  }
 });
 
 
@@ -45,7 +58,18 @@ function addData() {
   var expenses   = parseFloat(document.getElementById("expenses").value);
 
   if (!monthValue || isNaN(revenue) || isNaN(expenses)) {
-    alert("Please enter a valid month, revenue, and expenses.");
+    alert("Please fill in the month, revenue, and expenses fields.");
+    return;
+  }
+
+  // Duplicate month guard
+  var exists = businessData.some(function(d) {
+    return d.date.toISOString().slice(0, 7) === monthValue;
+  });
+  if (exists) {
+    var warn = document.getElementById("duplicateWarning");
+    if (warn) { warn.style.display = "block"; }
+    alert("You have already entered data for " + monthValue + ". Use the Edit button in the table to update it.");
     return;
   }
 
@@ -55,7 +79,269 @@ function addData() {
   businessData.push({ date: date, revenue: revenue, expenses: expenses, profit: profit });
   businessData.sort(function(a, b) { return a.date - b.date; });
 
+  // Clear form
+  document.getElementById("month").value    = "";
+  document.getElementById("revenue").value  = "";
+  document.getElementById("expenses").value = "";
+  var warn = document.getElementById("duplicateWarning");
+  if (warn) warn.style.display = "none";
+
   updateAll();
+}
+
+
+/* ================= DUPLICATE CHECK (live on month change) ================= */
+
+function checkDuplicate() {
+  var monthValue = document.getElementById("month").value;
+  var warn = document.getElementById("duplicateWarning");
+  if (!warn || !monthValue) return;
+
+  var exists = businessData.some(function(d) {
+    return d.date.toISOString().slice(0, 7) === monthValue;
+  });
+  warn.style.display = exists ? "block" : "none";
+}
+
+
+/* ================= FILE IMPORT ================= */
+
+function handleFileImport(event) {
+  var file   = event.target.files[0];
+  var status = document.getElementById("importStatus");
+  if (!file) return;
+
+  var name = file.name.toLowerCase();
+  if (status) status.textContent = "Reading file...";
+
+  if (name.endsWith(".csv") || name.endsWith(".xlsx") || name.endsWith(".xls")) {
+    importSpreadsheet(file, status);
+  } else if (name.endsWith(".docx") || name.endsWith(".doc")) {
+    importWord(file, status);
+  } else {
+    if (status) status.textContent = "Unsupported file type. Use .csv, .xlsx, .xls, or .docx";
+    status.style.color = "var(--danger)";
+  }
+
+  // Reset file input so same file can be re-imported if needed
+  event.target.value = "";
+}
+
+function importSpreadsheet(file, statusEl) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb    = XLSX.read(e.target.result, { type: "binary" });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      var rows  = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      var imported = 0;
+      var skipped  = 0;
+      var errors   = 0;
+
+      rows.forEach(function(row) {
+        // Flexible column name matching (case-insensitive)
+        var month    = findCol(row, ["month","date","period","mo"]);
+        var revenue  = findCol(row, ["revenue","income","sales","turnover","rev"]);
+        var expenses = findCol(row, ["expenses","expense","costs","cost","expenditure","exp"]);
+
+        if (!month || revenue === null || expenses === null) { errors++; return; }
+
+        // Normalise month format
+        var monthStr = String(month).trim();
+        // Handle various formats: "Jan 2024", "01/2024", "2024-01", "January 2024"
+        var parsed = parseMonthString(monthStr);
+        if (!parsed) { errors++; return; }
+
+        var rev = parseFloat(String(revenue).replace(/[^0-9.-]/g, ""));
+        var exp = parseFloat(String(expenses).replace(/[^0-9.-]/g, ""));
+        if (isNaN(rev) || isNaN(exp)) { errors++; return; }
+
+        // Check duplicate
+        var exists = businessData.some(function(d) {
+          return d.date.toISOString().slice(0, 7) === parsed;
+        });
+        if (exists) { skipped++; return; }
+
+        businessData.push({
+          date: new Date(parsed + "-01"),
+          revenue: rev,
+          expenses: exp,
+          profit: rev - exp
+        });
+        imported++;
+      });
+
+      businessData.sort(function(a, b) { return a.date - b.date; });
+      updateAll();
+
+      var msg = "✓ Imported " + imported + " month" + (imported !== 1 ? "s" : "");
+      if (skipped > 0)  msg += " · " + skipped + " skipped (duplicate)";
+      if (errors  > 0)  msg += " · " + errors  + " unreadable rows";
+      if (statusEl) { statusEl.textContent = msg; statusEl.style.color = "var(--success)"; }
+
+    } catch(err) {
+      if (statusEl) { statusEl.textContent = "Error reading file: " + err.message; statusEl.style.color = "var(--danger)"; }
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function importWord(file, statusEl) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // Extract raw text from docx via mammoth if available, otherwise try ArrayBuffer parse
+      var text = "";
+
+      // Try basic text extraction from the binary string
+      var binary = e.target.result;
+      // Look for readable ASCII text sequences (docx stores text in XML inside zip)
+      var matches = binary.match(/[\x20-\x7E]{4,}/g) || [];
+      text = matches.join(" ");
+
+      // Find rows that look like: "2024-01 12500 8200" or "January 2024 12500 8200"
+      var monthPattern = /(\b20\d{2}[-\/]\d{1,2}\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*[\s\-]*20\d{2}\b)/gi;
+      var numberPattern = /[\d,]+(?:\.\d+)?/g;
+
+      var imported = 0;
+      var skipped  = 0;
+      var lines = text.split(/\s{2,}|\n|\r/);
+
+      lines.forEach(function(line) {
+        var mMatch = line.match(monthPattern);
+        var nMatch = (line.match(numberPattern) || []).filter(function(n){ return parseFloat(n.replace(/,/g,"")) >= 0; });
+        if (!mMatch || nMatch.length < 2) return;
+
+        var parsed = parseMonthString(mMatch[0].trim());
+        if (!parsed) return;
+
+        var rev = parseFloat(nMatch[0].replace(/,/g,""));
+        var exp = parseFloat(nMatch[1].replace(/,/g,""));
+        if (isNaN(rev) || isNaN(exp)) return;
+
+        var exists = businessData.some(function(d) {
+          return d.date.toISOString().slice(0,7) === parsed;
+        });
+        if (exists) { skipped++; return; }
+
+        businessData.push({
+          date: new Date(parsed + "-01"),
+          revenue: rev,
+          expenses: exp,
+          profit: rev - exp
+        });
+        imported++;
+      });
+
+      businessData.sort(function(a,b){ return a.date - b.date; });
+      updateAll();
+
+      if (imported > 0) {
+        var msg = "✓ Imported " + imported + " month" + (imported !== 1 ? "s" : "") + " from Word file";
+        if (skipped > 0) msg += " · " + skipped + " skipped (duplicate)";
+        if (statusEl) { statusEl.textContent = msg; statusEl.style.color = "var(--success)"; }
+      } else {
+        if (statusEl) {
+          statusEl.textContent = "⚠ No data found. Ensure your Word doc has a table with Month, Revenue, Expenses columns.";
+          statusEl.style.color = "var(--warning)";
+        }
+      }
+    } catch(err) {
+      if (statusEl) { statusEl.textContent = "Error reading Word file: " + err.message; statusEl.style.color = "var(--danger)"; }
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function findCol(row, names) {
+  var keys = Object.keys(row);
+  for (var i = 0; i < names.length; i++) {
+    for (var j = 0; j < keys.length; j++) {
+      if (keys[j].toLowerCase().trim() === names[i]) return row[keys[j]];
+    }
+  }
+  return null;
+}
+
+function parseMonthString(str) {
+  str = str.trim();
+  // Already YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(str)) return str;
+  // YYYY/MM or MM/YYYY or MM-YYYY
+  var m;
+  if ((m = str.match(/^(\d{4})[\/\-](\d{1,2})$/))) return m[1] + "-" + m[2].padStart(2,"0");
+  if ((m = str.match(/^(\d{1,2})[\/\-](\d{4})$/))) return m[2] + "-" + m[1].padStart(2,"0");
+  // "Jan 2024" or "January 2024" or "Jan-2024"
+  var months = {jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12"};
+  var mo = str.toLowerCase().match(/([a-z]+)[\s\-]*(\d{4})/);
+  if (mo) {
+    var key = mo[1].slice(0,3);
+    if (months[key]) return mo[2] + "-" + months[key];
+  }
+  // "2024 Jan"
+  mo = str.toLowerCase().match(/(\d{4})[\s\-]*([a-z]+)/);
+  if (mo) {
+    var key2 = mo[2].slice(0,3);
+    if (months[key2]) return mo[1] + "-" + months[key2];
+  }
+  return null;
+}
+
+
+/* ================= EDIT MODAL ================= */
+
+function openEditModal(index) {
+  var record = businessData[index];
+  if (!record) return;
+
+  document.getElementById("editIndex").value   = index;
+  document.getElementById("editModalTitle").textContent = record.date.toISOString().slice(0, 7);
+  document.getElementById("editRevenue").value  = record.revenue;
+  document.getElementById("editExpenses").value = record.expenses;
+
+  var modal = document.getElementById("editModal");
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
+
+  // Focus first input
+  setTimeout(function() { document.getElementById("editRevenue").focus(); }, 50);
+}
+
+function closeEditModal() {
+  var modal = document.getElementById("editModal");
+  modal.style.display = "none";
+  document.body.style.overflow = "";
+}
+
+function saveEdit() {
+  var index    = parseInt(document.getElementById("editIndex").value);
+  var revenue  = parseFloat(document.getElementById("editRevenue").value);
+  var expenses = parseFloat(document.getElementById("editExpenses").value);
+
+  if (isNaN(revenue) || isNaN(expenses)) {
+    alert("Please enter valid numbers for revenue and expenses.");
+    return;
+  }
+
+  businessData[index].revenue  = revenue;
+  businessData[index].expenses = expenses;
+  businessData[index].profit   = revenue - expenses;
+
+  closeEditModal();
+  updateAll();
+}
+
+function deleteRecord() {
+  var index = parseInt(document.getElementById("editIndex").value);
+  var record = businessData[index];
+  if (!record) return;
+
+  if (confirm("Delete record for " + record.date.toISOString().slice(0,7) + "? This cannot be undone.")) {
+    businessData.splice(index, 1);
+    closeEditModal();
+    updateAll();
+  }
 }
 
 
@@ -83,18 +369,26 @@ function renderRecordsTable() {
   tbody.innerHTML = "";
 
   if (businessData.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:28px;font-family:monospace;font-size:12px;">No records yet — add your first month above</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:28px;font-family:monospace;font-size:12px;">No records yet — add your first month above</td></tr>';
     return;
   }
 
-  businessData.forEach(function(record) {
+  businessData.forEach(function(record, index) {
     var profitColor = record.profit >= 0 ? "var(--success)" : "var(--danger)";
     var row = document.createElement("tr");
     row.innerHTML =
       "<td>" + record.date.toISOString().slice(0, 7) + "</td>" +
       "<td>" + formatCurrency(record.revenue) + "</td>" +
       "<td>" + formatCurrency(record.expenses) + "</td>" +
-      '<td style="color:' + profitColor + ';font-weight:600;">' + formatCurrency(record.profit) + "</td>";
+      '<td style="color:' + profitColor + ';font-weight:600;">' + formatCurrency(record.profit) + "</td>" +
+      '<td style="text-align:center;">' +
+        '<button onclick="openEditModal(' + index + ')" style="' +
+          'background:var(--bg-mid);border:1px solid var(--border-mid);border-radius:6px;' +
+          'color:var(--gold);font-size:11px;font-family:monospace;padding:4px 10px;cursor:pointer;' +
+          'transition:background 0.15s;" ' +
+          'onmouseenter="this.style.background=\'var(--gold-glow)\'" ' +
+          'onmouseleave="this.style.background=\'var(--bg-mid)\'">&#9998; Edit</button>' +
+      "</td>";
     tbody.appendChild(row);
   });
 }
@@ -987,4 +1281,10 @@ function bindGlobalFunctions() {
   window.toggleSidebar        = toggleSidebar;
   window.generatePDF          = generatePDF;
   window.generateAIProjection = generateAIProjection;
+  window.checkDuplicate       = checkDuplicate;
+  window.handleFileImport     = handleFileImport;
+  window.openEditModal        = openEditModal;
+  window.closeEditModal       = closeEditModal;
+  window.saveEdit             = saveEdit;
+  window.deleteRecord         = deleteRecord;
 }
