@@ -13,11 +13,10 @@
 <link rel="stylesheet" href="shared.css"/>
 
 <style>
-/* KEEP YOUR FULL CSS EXACTLY AS YOU SENT — NO CHANGES */
 .page-wrap{padding-top:calc(var(--nav-h) + 24px);}
 </style>
-
 </head>
+
 <body>
 
 <div id="ig-nav"></div>
@@ -29,7 +28,7 @@
       <div class="page-hero-bg"></div>
       <div class="page-hero-eyebrow">ImpactGrid Network</div>
       <h1>Available <span>Jobs</span></h1>
-      <p>Live opportunities posted by employers on the ImpactGrid Network. Let Dijo find and apply to the best ones for you.</p>
+      <p>Live opportunities powered by Dijo AI.</p>
     </div>
   </div>
 
@@ -40,17 +39,16 @@
     <!-- DIJO HERO -->
     <div class="dijo-hero">
       <div class="dijo-hero-text">
-        <h2>Meet <span>Dijo</span> — Your AI Job Consultant</h2>
-        <p>I find jobs that actually match your profile, explain exactly why they fit, and apply with a precision-tailored cover letter and optimised CV — in minutes.</p>
+        <h2>Meet <span>Dijo</span></h2>
+        <p>I match your CV with real jobs and apply automatically.</p>
 
         <div class="dijo-pills">
           <div class="dijo-pill">1 Free Application</div>
-          <div class="dijo-pill">AI Match Scoring</div>
-          <div class="dijo-pill">Tailored Cover Letter</div>
+          <div class="dijo-pill">AI Matching</div>
+          <div class="dijo-pill">Auto Apply</div>
         </div>
 
-        <!-- FIXED LINK -->
-        <a href="./dijo.html" class="dijo-start-btn">Get Started with Dijo →</a>
+        <a href="./dijo.html" class="dijo-start-btn">Start →</a>
       </div>
 
       <img class="dijo-avatar" src="dijo-mascot.png"/>
@@ -64,25 +62,25 @@
       </div>
       <div class="stats-band-item">
         <div class="stats-band-value" id="sCompanies">0</div>
-        <div class="stats-band-label">Companies Hiring</div>
+        <div class="stats-band-label">Companies</div>
       </div>
       <div class="stats-band-item">
         <div class="stats-band-value" id="sNew">0</div>
-        <div class="stats-band-label">Added This Week</div>
+        <div class="stats-band-label">New</div>
       </div>
     </div>
 
     <!-- FILTER -->
     <div class="filter-bar">
-      <input id="searchInput" class="filter-input" placeholder="Search jobs..."/>
+      <input id="searchInput" class="filter-input" placeholder="Search jobs..." oninput="filterJobs()"/>
     </div>
 
     <!-- JOBS -->
     <div id="jobsGrid"></div>
 
     <div class="jobs-cta">
-      <h3>Ready to Join?</h3>
-      <p>Apply smarter with Dijo AI.</p>
+      <h3>Let Dijo Apply For You</h3>
+      <p>Upload your CV and get real interviews.</p>
       <a href="./dijo.html" class="btn-pri">Apply with Dijo →</a>
     </div>
 
@@ -90,50 +88,92 @@
 
 </div>
 
-<!-- ⚠️ DISABLED SCRIPTS FOR TESTING -->
-<!-- <script src="ig-supabase.js"></script> -->
-<!-- <script src="nav.js"></script> -->
-
 <script>
+const DIJO_API = 'https://impactgrid-dijo-api.onrender.com';
 let allJobs = [];
 
 document.addEventListener('DOMContentLoaded', function() {
   loadJobs();
 });
 
-function loadJobs() {
-  // TEMP TEST DATA (SO PAGE ALWAYS WORKS)
-  allJobs = [
-    {
-      title: "Frontend Developer",
-      company_name: "TechCorp",
-      location: "Remote",
-      description: "React developer needed",
-      created_at: new Date().toISOString()
-    },
-    {
-      title: "Backend Engineer",
-      company_name: "DataFlow",
-      location: "London",
-      description: "Node.js backend role",
-      created_at: new Date().toISOString()
-    }
-  ];
+/* =========================
+   LOAD REAL JOBS
+========================= */
+async function loadJobs() {
+  try {
+    const res = await fetch(DIJO_API + '/ai/jobs');
+    const data = await res.json();
 
-  renderJobs(allJobs);
+    allJobs = data.jobs || [];
+
+    updateStats();
+    renderJobs(allJobs);
+
+  } catch (e) {
+    document.getElementById('jobsGrid').innerHTML =
+      '<p style="text-align:center;padding:40px;">Failed to load jobs</p>';
+  }
 }
 
+/* =========================
+   FILTER
+========================= */
+function filterJobs() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+
+  const filtered = allJobs.filter(j =>
+    (j.title || '').toLowerCase().includes(q) ||
+    (j.company_name || '').toLowerCase().includes(q) ||
+    (j.description || '').toLowerCase().includes(q)
+  );
+
+  renderJobs(filtered);
+}
+
+/* =========================
+   STATS
+========================= */
+function updateStats() {
+  document.getElementById('sTotal').textContent = allJobs.length;
+
+  const companies = new Set(allJobs.map(j => j.company_name));
+  document.getElementById('sCompanies').textContent = companies.size;
+
+  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const newJobs = allJobs.filter(j => new Date(j.created_at).getTime() > weekAgo);
+
+  document.getElementById('sNew').textContent = newJobs.length;
+}
+
+/* =========================
+   RENDER
+========================= */
 function renderJobs(jobs) {
   const el = document.getElementById('jobsGrid');
 
+  if (!jobs.length) {
+    el.innerHTML = '<p style="text-align:center;padding:40px;">No jobs found</p>';
+    return;
+  }
+
   el.innerHTML = jobs.map(j => `
     <div class="job-card">
-      <h3>${j.title}</h3>
-      <p>${j.company_name}</p>
-      <p>${j.description}</p>
+      <h3>${escapeHTML(j.title || 'Job')}</h3>
+      <p><strong>${escapeHTML(j.company_name || '')}</strong></p>
+      <p>${escapeHTML((j.description || '').substring(0,120))}...</p>
       <a href="./dijo.html" class="job-apply-btn">Apply with Dijo</a>
     </div>
   `).join('');
+}
+
+/* =========================
+   SAFE HTML
+========================= */
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
 }
 </script>
 
