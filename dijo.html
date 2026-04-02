@@ -1,78 +1,207 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+const API = "https://impactgrid-dijo-api.onrender.com";
 
-  <title>Dijo AI</title>
+let cvText = "";
+let extractedProfile = null;
+let matchedJobs = [];
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="dijo.css">
-</head>
+/* =========================
+   NAVIGATION
+========================= */
+const startBtn = document.getElementById("startBtn");
+const nextBtns = document.querySelectorAll(".nextBtn");
 
-<body>
+startBtn.onclick = () => {
+  document.getElementById("landing").style.display = "none";
+  document.getElementById("app").style.display = "block";
+};
 
-  <!-- LANDING -->
-  <section id="landing">
-    <h1>Meet Dijo 🤖</h1>
-    <p>Your AI job assistant</p>
+nextBtns.forEach(btn => {
+  btn.onclick = () => nextStep();
+});
 
-    <button id="startBtn">Start</button>
-  </section>
+function nextStep() {
+  const current = document.querySelector(".step.active");
+  const next = current.nextElementSibling;
 
-  <!-- APP -->
-  <section id="app" style="display:none;">
+  if (!next) return;
 
-    <!-- STEP 1 -->
-    <div class="step active" id="step1">
-      <h2>Welcome 👋</h2>
-      <p>I’ll help you find the right job</p>
+  current.classList.remove("active");
+  current.style.display = "none";
 
-      <button class="nextBtn">Continue</button>
+  next.classList.add("active");
+  next.style.display = "block";
+
+  /* trigger logic */
+  if (next.id === "step3") analyseCV();
+}
+
+/* =========================
+   STEP 2 → STEP 3
+========================= */
+async function analyseCV() {
+  cvText = document.getElementById("cvText").value;
+
+  if (!cvText) {
+    alert("Paste your CV first");
+    return;
+  }
+
+  document.getElementById("loadingText").innerText = "Understanding your profile...";
+
+  /* =========================
+     EXTRACT PROFILE
+  ========================= */
+  try {
+    const res = await fetch(API + "/ai/extract-profile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ cv_text: cvText })
+    });
+
+    extractedProfile = await res.json();
+
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+
+  document.getElementById("loadingText").innerText = "Finding matching jobs...";
+
+  /* =========================
+     GET JOBS
+  ========================= */
+  let jobs = [];
+
+  try {
+    const res = await fetch(API + "/ai/jobs");
+    const data = await res.json();
+    jobs = data.jobs || [];
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+
+  /* =========================
+     FILTER JOBS (SMART)
+  ========================= */
+  const keywords = extractedProfile.search_keywords || [];
+
+  const filtered = jobs.filter(j => {
+    const text = (j.title + " " + j.description).toLowerCase();
+
+    return keywords.some(k => text.includes(k.toLowerCase()));
+  }).slice(0, 8);
+
+  document.getElementById("loadingText").innerText = "Matching you with best jobs...";
+
+  /* =========================
+     MATCH JOBS
+  ========================= */
+  const results = [];
+
+  for (let job of filtered) {
+    try {
+      const res = await fetch(API + "/ai/match", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          cv_text: cvText,
+          job_description: job.description
+        })
+      });
+
+      const data = await res.json();
+
+      results.push({
+        ...job,
+        score: data.result?.score || 0,
+        reasons: data.result?.reasons || []
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  matchedJobs = results.slice(0, 3);
+
+  showResults();
+
+  /* move to step 4 */
+  goToStep("step4");
+}
+
+/* =========================
+   SHOW RESULTS
+========================= */
+function showResults() {
+  const container = document.getElementById("jobs");
+
+  if (!matchedJobs.length) {
+    container.innerHTML = "<p>No strong matches found.</p>";
+    return;
+  }
+
+  container.innerHTML = matchedJobs.map((job, i) => `
+    <div class="job-card" style="border:2px solid ${i === 0 ? 'gold' : '#333'};">
+      <h3>${escapeHTML(job.title)}</h3>
+      <p>${escapeHTML(job.company_name)}</p>
+
+      <p><strong>${job.score}% Match</strong></p>
+
+      <ul>
+        ${(job.reasons || []).slice(0,2).map(r => `<li>${escapeHTML(r)}</li>`).join("")}
+      </ul>
+
+      <button onclick="applyJob(${i})">Apply</button>
     </div>
+  `).join("");
+}
 
-    <!-- STEP 2 -->
-    <div class="step" id="step2">
-      <h2>Upload CV</h2>
+/* =========================
+   APPLY
+========================= */
+function applyJob(index) {
+  const job = matchedJobs[index];
 
-      <input type="file" id="cvFile">
-      <textarea id="cvText" placeholder="Or paste your CV"></textarea>
+  goToStep("step5");
 
-      <input type="text" id="role" placeholder="Role">
-      <input type="text" id="location" placeholder="Location">
+  setTimeout(() => {
+    document.getElementById("result").innerHTML = `
+      <p>✅ Applied to <strong>${escapeHTML(job.title)}</strong></p>
+      <p>Dijo says: You are a strong fit. Apply to more roles to increase your chances.</p>
+    `;
 
-      <button class="nextBtn">Analyse</button>
-    </div>
+    goToStep("step6");
+  }, 1500);
+}
 
-    <!-- STEP 3 -->
-    <div class="step" id="step3">
-      <h2>Analysing...</h2>
-      <p id="loadingText">Reading your CV...</p>
-    </div>
+/* =========================
+   STEP CONTROL
+========================= */
+function goToStep(id) {
+  document.querySelectorAll(".step").forEach(s => {
+    s.classList.remove("active");
+    s.style.display = "none";
+  });
 
-    <!-- STEP 4 -->
-    <div class="step" id="step4">
-      <h2>Your Matches</h2>
+  const step = document.getElementById(id);
+  step.classList.add("active");
+  step.style.display = "block";
+}
 
-      <div id="jobs"></div>
-    </div>
-
-    <!-- STEP 5 -->
-    <div class="step" id="step5">
-      <h2>Applying...</h2>
-    </div>
-
-    <!-- STEP 6 -->
-    <div class="step" id="step6">
-      <h2>Done 🎉</h2>
-
-      <div id="result"></div>
-    </div>
-
-  </section>
-
-  <!-- JS -->
-  <script src="dijo.js"></script>
-
-</body>
-</html>
+/* =========================
+   SAFE HTML
+========================= */
+function escapeHTML(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
