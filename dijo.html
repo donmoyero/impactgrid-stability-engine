@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Dijo AI</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="dijo.css">
+</head>
+
+<body>
+
+  <!-- LANDING -->
+  <section id="landing">
+    <h1>Meet Dijo 🤖</h1>
+    <p>Your AI job assistant</p>
+
+    <button id="startBtn">Start</button>
+  </section>
+
+  <!-- APP -->
+  <section id="app" style="display:none;">
+
+    <!-- STEP 1 -->
+    <div class="step active" id="step1">
+      <h2>Welcome 👋</h2>
+      <p>I’ll help you find the right job</p>
+
+      <button class="nextBtn">Continue</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step" id="step2">
+      <h2>Upload CV</h2>
+
+      <input type="file" id="cvFile">
+      <textarea id="cvText" placeholder="Or paste your CV"></textarea>
+
+      <input type="text" id="role" placeholder="Role">
+      <input type="text" id="location" placeholder="Location">
+
+      <button class="nextBtn">Analyse</button>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step" id="step3">
+      <h2>Analysing...</h2>
+      <p id="loadingText">Reading your CV...</p>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step" id="step4">
+      <h2>Your Matches</h2>
+
+      <div id="jobs"></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step" id="step5">
+      <h2>Applying...</h2>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step" id="step6">
+      <h2>Done 🎉</h2>
+
+      <div id="result"></div>
+    </div>
+
+  </section>
+
+  <!-- JS -->
+  <script src="dijo.js"></script>
+
+</body>
+</html>
